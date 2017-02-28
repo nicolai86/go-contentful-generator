@@ -70,6 +70,7 @@ type includeAsset struct {
 
 // Author a
 type Author struct {
+	ID             string
 	Name           string
 	Website        string
 	ProfilePhoto   Asset
@@ -105,6 +106,7 @@ func resolveAuthor(entryID string, includes includes) Author {
 		if entry.Sys.ID == entryID {
 			json.Unmarshal(*entry.Fields, &item.Fields)
 			return Author{
+				ID:             item.Sys.ID,
 				Name:           item.Fields.Name,
 				Website:        item.Fields.Website,
 				ProfilePhoto:   resolveAsset(item.Fields.ProfilePhoto.Sys.ID, includes),
@@ -128,6 +130,7 @@ func resolveAuthors(ids entryIDs, includes includes) []Author {
 		if included == true {
 			json.Unmarshal(*entry.Fields, &item.Fields)
 			items = append(items, Author{
+				ID:             item.Sys.ID,
 				Name:           item.Fields.Name,
 				Website:        item.Fields.Website,
 				ProfilePhoto:   resolveAsset(item.Fields.ProfilePhoto.Sys.ID, includes),
@@ -159,6 +162,7 @@ func (c *Client) FetchAuthor() ([]Author, error) {
 	var items = make([]Author, len(data.Items))
 	for i, item := range data.Items {
 		items[i] = Author{
+			ID:             item.Sys.ID,
 			Name:           item.Fields.Name,
 			Website:        item.Fields.Website,
 			ProfilePhoto:   resolveAsset(item.Fields.ProfilePhoto.Sys.ID, data.Includes),
@@ -173,6 +177,7 @@ func (c *Client) FetchAuthor() ([]Author, error) {
 
 // Category
 type Category struct {
+	ID               string
 	Title            string
 	ShortDescription string
 	Icon             Asset
@@ -202,6 +207,7 @@ func resolveCategory(entryID string, includes includes) Category {
 		if entry.Sys.ID == entryID {
 			json.Unmarshal(*entry.Fields, &item.Fields)
 			return Category{
+				ID:               item.Sys.ID,
 				Title:            item.Fields.Title,
 				ShortDescription: item.Fields.ShortDescription,
 				Icon:             resolveAsset(item.Fields.Icon.Sys.ID, includes),
@@ -222,6 +228,7 @@ func resolveCategorys(ids entryIDs, includes includes) []Category {
 		if included == true {
 			json.Unmarshal(*entry.Fields, &item.Fields)
 			items = append(items, Category{
+				ID:               item.Sys.ID,
 				Title:            item.Fields.Title,
 				ShortDescription: item.Fields.ShortDescription,
 				Icon:             resolveAsset(item.Fields.Icon.Sys.ID, includes),
@@ -250,6 +257,7 @@ func (c *Client) FetchCategory() ([]Category, error) {
 	var items = make([]Category, len(data.Items))
 	for i, item := range data.Items {
 		items[i] = Category{
+			ID:               item.Sys.ID,
 			Title:            item.Fields.Title,
 			ShortDescription: item.Fields.ShortDescription,
 			Icon:             resolveAsset(item.Fields.Icon.Sys.ID, data.Includes),
@@ -261,6 +269,7 @@ func (c *Client) FetchCategory() ([]Category, error) {
 
 // Post
 type Post struct {
+	ID            string
 	Title         string
 	Slug          string
 	Author        []Author
@@ -304,6 +313,7 @@ func resolvePost(entryID string, includes includes) Post {
 		if entry.Sys.ID == entryID {
 			json.Unmarshal(*entry.Fields, &item.Fields)
 			return Post{
+				ID:            item.Sys.ID,
 				Title:         item.Fields.Title,
 				Slug:          item.Fields.Slug,
 				Author:        resolveAuthors(item.Fields.Author, includes),
@@ -331,6 +341,7 @@ func resolvePosts(ids entryIDs, includes includes) []Post {
 		if included == true {
 			json.Unmarshal(*entry.Fields, &item.Fields)
 			items = append(items, Post{
+				ID:            item.Sys.ID,
 				Title:         item.Fields.Title,
 				Slug:          item.Fields.Slug,
 				Author:        resolveAuthors(item.Fields.Author, includes),
@@ -366,6 +377,7 @@ func (c *Client) FetchPost() ([]Post, error) {
 	var items = make([]Post, len(data.Items))
 	for i, item := range data.Items {
 		items[i] = Post{
+			ID:            item.Sys.ID,
 			Title:         item.Fields.Title,
 			Slug:          item.Fields.Slug,
 			Author:        resolveAuthors(item.Fields.Author, data.Includes),

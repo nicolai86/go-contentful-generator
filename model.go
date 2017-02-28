@@ -8,7 +8,9 @@ import (
 )
 
 func generateModelResolvers(m contentfulModel, includes string) []jen.Code {
-	var parseSts = make([]jen.Code, 0)
+	var parseSts = []jen.Code{
+		jen.Id("ID").Op(":").Id("item.Sys.ID").Op(","),
+	}
 	for _, field := range m.Fields {
 		fieldName := strings.ToUpper(field.Name[0:1]) + field.Name[1:]
 		if field.Type == "Symbol" || field.Type == "Text" {
@@ -84,7 +86,10 @@ func generateModelItemAttributes(m contentfulModel) []jen.Code {
 }
 
 func generateModelAttributes(m contentfulModel) []jen.Code {
-	var sts = make([]jen.Code, 0)
+	var sts = []jen.Code{
+		jen.Id("ID").String(),
+	}
+
 	for _, field := range m.Fields {
 		fieldName := strings.ToUpper(field.Name[0:1]) + field.Name[1:]
 		if field.Type == "Symbol" || field.Type == "Text" {

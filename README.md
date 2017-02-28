@@ -39,4 +39,3 @@ Or, you can use a go-generate flag like this:
 - [ ] pagination
 - [ ] tests
 - [ ] certificate pinning
-- [ ] expose object ID (e.g. Sys.ID)
