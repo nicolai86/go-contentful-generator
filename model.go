@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/davelondon/jennifer/jen"
+	"github.com/gedex/inflector"
 )
 
 func generateModelResolvers(m contentfulModel, includes string) []jen.Code {
@@ -186,10 +187,11 @@ func generateModelType(f *jen.File, m contentfulModel) {
 		jen.Return(jen.Id("items")),
 	)
 
-	f.Comment(fmt.Sprintf("Fetch%s retrieves paginated %ss", m.Name, m.Name))
+	resolverName := inflector.Pluralize(m.Name)
+	f.Comment(fmt.Sprintf("%s retrieves paginated %s entries", resolverName, m.Name))
 	f.Func().Params(
 		jen.Id("c").Op("*").Id("Client"),
-	).Id(fmt.Sprintf("Fetch%s", m.Name)).Params().Call(
+	).Id(resolverName).Params().Call(
 		jen.Index().Id(m.Name), jen.Id("error"),
 	).Block(
 		jen.Var().Id("url").Op("=").Qual("fmt", "Sprintf").Params(

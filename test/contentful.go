@@ -144,8 +144,8 @@ func resolveAuthors(ids entryIDs, includes includes) []Author {
 	return items
 }
 
-// FetchAuthor retrieves paginated Authors
-func (c *Client) FetchAuthor() ([]Author, error) {
+// Authors retrieves paginated Author entries
+func (c *Client) Authors() ([]Author, error) {
 	var url = fmt.Sprintf("%s/spaces/%s/entries?access_token=%s&content_type=%s&include=10&locale=%s", c.host, c.spaceID, c.authToken, "1kUEViTN4EmGiEaaeC6ouY", c.Locales[0])
 	resp, err := c.client.Get(url)
 	if err != nil {
@@ -239,8 +239,8 @@ func resolveCategorys(ids entryIDs, includes includes) []Category {
 	return items
 }
 
-// FetchCategory retrieves paginated Categorys
-func (c *Client) FetchCategory() ([]Category, error) {
+// Categories retrieves paginated Category entries
+func (c *Client) Categories() ([]Category, error) {
 	var url = fmt.Sprintf("%s/spaces/%s/entries?access_token=%s&content_type=%s&include=10&locale=%s", c.host, c.spaceID, c.authToken, "5KMiN6YPvi42icqAUQMCQe", c.Locales[0])
 	resp, err := c.client.Get(url)
 	if err != nil {
@@ -359,8 +359,8 @@ func resolvePosts(ids entryIDs, includes includes) []Post {
 	return items
 }
 
-// FetchPost retrieves paginated Posts
-func (c *Client) FetchPost() ([]Post, error) {
+// Posts retrieves paginated Post entries
+func (c *Client) Posts() ([]Post, error) {
 	var url = fmt.Sprintf("%s/spaces/%s/entries?access_token=%s&content_type=%s&include=10&locale=%s", c.host, c.spaceID, c.authToken, "2wKn6yEnZewu2SCCkus4as", c.Locales[0])
 	resp, err := c.client.Get(url)
 	if err != nil {

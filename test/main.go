@@ -10,10 +10,9 @@ import (
 
 func main() {
 	c := New(os.Getenv("CONTENTFUL_AUTH_TOKEN"), []string{"en-US"})
-	posts, _ := c.FetchPost()
+	posts, _ := c.Posts()
 	fmt.Printf("%d Posts\n", len(posts))
 	for _, p := range posts {
-
 		fmt.Printf("ID: %s\n", p.ID)
 		fmt.Printf("Title: %s, by ", p.Title)
 		for _, a := range p.Author {
