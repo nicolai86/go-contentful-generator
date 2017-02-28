@@ -4,15 +4,23 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"time"
 )
 
 func main() {
 	c := New(os.Getenv("CONTENTFUL_AUTH_TOKEN"), []string{"en-US"})
-	posts, _ := c.Posts()
-	fmt.Printf("%d Posts\n", len(posts))
-	for _, p := range posts {
+	it := c.Posts(ListOptions{Limit: 1, IncludeCount: 1})
+	fmt.Printf("Posts:\n")
+	for {
+		p, err := it.Next()
+		if err == IteratorDone {
+			break
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
 		fmt.Printf("ID: %s\n", p.ID)
 		fmt.Printf("Title: %s, by ", p.Title)
 		for _, a := range p.Author {

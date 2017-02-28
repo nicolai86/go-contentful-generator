@@ -138,6 +138,81 @@ func generateModelAttributes(m contentfulModel) []jen.Code {
 }
 
 func generateModelType(f *jen.File, m contentfulModel) {
+	f.Comment(fmt.Sprintf("%sIterator is used to paginate result sets of %s", m.Name, m.Name))
+	f.Type().Id(fmt.Sprintf("%sIterator", m.Name)).Struct(
+		jen.Id("Page").Int(),
+		jen.Id("Limit").Int(),
+		jen.Id("Offset").Int(),
+		jen.Id("IncludeCount").Int(),
+		jen.Id("c").Op("*").Id("Client"),
+		jen.Id("items").Index().Op("*").Id(m.Name),
+	)
+
+	f.Comment(fmt.Sprintf("Next returns the following item of type %s. If none exists a network request will be executed", m.Name))
+	f.Func().Params(
+		jen.Id("it").Op("*").Id(fmt.Sprintf("%sIterator", m.Name)),
+	).Id("Next").Params().Params(
+		jen.Op("*").Id(m.Name), jen.Id("error"),
+	).Block(
+		jen.If(jen.Len(jen.Id("it.items")).Op("==").Lit(0)).Block(
+			jen.If(jen.Id("err").Op(":=").Id("it.fetch();").Id("err").Op("!=").Id("nil")).Block(
+				jen.Return(jen.Id("nil"), jen.Id("err")),
+			),
+		),
+		jen.If(jen.Len(jen.Id("it.items")).Op("==").Lit(0)).Block(
+			jen.Return(jen.Id("nil"), jen.Id("IteratorDone")),
+		),
+		jen.Var().Id("item").Op("*").Id(m.Name),
+		jen.Id("item, it.items").Op("=").Id("it.items[len(it.items)-1], it.items[:len(it.items)-1]"),
+		jen.If(jen.Len(jen.Id("it.items")).Op("==").Lit(0)).Block(
+			jen.Id("it.Page++"),
+			jen.Id("it.Offset = it.Page * it.Limit"),
+		),
+		jen.Return(jen.Id("item, nil")),
+	)
+
+	f.Func().Params(
+		jen.Id("it").Op("*").Id(fmt.Sprintf("%sIterator", m.Name)),
+	).Id("fetch").Params().Id("error").Block(
+		jen.Id("c").Op(":=").Id("it.c"),
+		jen.Var().Id("url").Op("=").Qual("fmt", "Sprintf").Params(
+			jen.Lit("%s/spaces/%s/entries?access_token=%s&content_type=%s&include=%d&locale=%s&limit=%d&skip=%d"),
+			jen.Id("c.host"),
+			jen.Id("c.spaceID"),
+			jen.Id("c.authToken"),
+			jen.Lit(m.Sys.ID),
+			jen.Id("it.IncludeCount"),
+			jen.Id("c.Locales").Index(jen.Lit(0)),
+			jen.Id("it.Limit"),
+			jen.Id("it.Offset"),
+		),
+		jen.List(jen.Id("resp"), jen.Id("err")).Op(":=").Id("c.client.Get").Params(jen.Id("url")),
+		jen.If(jen.Id("err").Op("!=").Id("nil")).Block(
+			jen.Return(jen.Id("err")),
+		),
+		jen.If(jen.Sel(jen.Id("resp"), jen.Id("StatusCode")).Op("!=").Qual("net/http", "StatusOK")).Block(
+			jen.Return(jen.Qual("fmt", "Errorf").Call(jen.Lit("Request failed: %s, %v"), jen.Id("resp.Status"), jen.Id("err"))),
+		),
+		jen.Var().Id("data").Id(fmt.Sprintf("%sResponse", m.DowncasedName())),
+		jen.If(
+			jen.Id("err").Op(":=").Sel(
+				jen.Qual("encoding/json", "NewDecoder").Params(jen.Id("resp.Body")),
+				jen.Id("Decode").Params(jen.Op("&").Id("data")),
+			).Op(";").Id("err").Op("!=").Id("nil"),
+		).Block(jen.Return(jen.Id("err"))),
+		jen.Sel(
+			jen.Id("resp.Body.Close").Call(),
+		),
+		jen.Var().Id("items").Op("=").Make(jen.Index().Op("*").Id(m.Name), jen.Id("len").Call(jen.Id("data.Items"))),
+		jen.For(jen.List(jen.Id("i"), jen.Id("item"))).Op(":=").Range().Id("data.Items").Block(
+			jen.Id("items").Index(jen.Id("i")).Op("=").Op("&").Id(m.Name).Block(
+				generateModelResolvers(m, "data.Includes")...,
+			),
+		),
+		jen.Id("it.items").Op("=").Id("items"),
+		jen.Return(jen.Id("nil")),
+	)
+
 	f.Comment(fmt.Sprintf("%s %s", m.Name, m.Description))
 	f.Type().Id(m.Name).Struct(generateModelAttributes(m)...)
 
@@ -149,6 +224,9 @@ func generateModelType(f *jen.File, m contentfulModel) {
 
 	f.Comment(fmt.Sprintf("%sResponse holds an entire contentful %s response", m.DowncasedName(), m.Name))
 	f.Type().Id(fmt.Sprintf("%sResponse", m.DowncasedName())).Struct(
+		jen.Id("Total").Int().Tag(map[string]string{"json": "total"}),
+		jen.Id("Skip").Int().Tag(map[string]string{"json": "skip"}),
+		jen.Id("Limit").Int().Tag(map[string]string{"json": "limit"}),
 		jen.Id("Items").Index().Id(fmt.Sprintf("%sItem", m.DowncasedName())).Tag(map[string]string{"json": "items"}),
 		jen.Id("Includes").Id("includes").Tag(map[string]string{"json": "includes"}),
 	)
@@ -191,40 +269,20 @@ func generateModelType(f *jen.File, m contentfulModel) {
 	f.Comment(fmt.Sprintf("%s retrieves paginated %s entries", resolverName, m.Name))
 	f.Func().Params(
 		jen.Id("c").Op("*").Id("Client"),
-	).Id(resolverName).Params().Call(
-		jen.Index().Id(m.Name), jen.Id("error"),
+	).Id(resolverName).Params(
+		jen.Id("opts").Id("ListOptions"),
+	).Call(
+		jen.Op("*").Id(fmt.Sprintf("%sIterator", m.Name)),
 	).Block(
-		jen.Var().Id("url").Op("=").Qual("fmt", "Sprintf").Params(
-			jen.Lit("%s/spaces/%s/entries?access_token=%s&content_type=%s&include=10&locale=%s"),
-			jen.Id("c.host"),
-			jen.Id("c.spaceID"),
-			jen.Id("c.authToken"),
-			jen.Lit(m.Sys.ID),
-			jen.Id("c.Locales").Index(jen.Lit(0)),
+		jen.If(jen.Id("opts.Limit").Op("<=").Lit(0)).Block(
+			jen.Id("opts.Limit").Op("=").Lit(100),
 		),
-		jen.List(jen.Id("resp"), jen.Id("err")).Op(":=").Id("c.client.Get").Params(jen.Id("url")),
-		jen.If(jen.Id("err").Op("!=").Id("nil")).Block(
-			jen.Return(jen.Id("nil"), jen.Id("err")),
+		jen.Id("it").Op(":=").Op("&").Id(fmt.Sprintf("%sIterator", m.Name)).Block(
+			jen.Id("Page").Op(":").Id("opts.Page").Op(","),
+			jen.Id("Limit").Op(":").Id("opts.Limit").Op(","),
+			jen.Id("IncludeCount").Op(":").Id("opts.IncludeCount").Op(","),
+			jen.Id("c").Op(":").Id("c").Op(","),
 		),
-		jen.If(jen.Sel(jen.Id("resp"), jen.Id("StatusCode")).Op("!=").Qual("net/http", "StatusOK")).Block(
-			jen.Return(jen.Id("nil"), jen.Qual("fmt", "Errorf").Call(jen.Lit("Request failed: %s, %v"), jen.Id("resp.Status"), jen.Id("err"))),
-		),
-		jen.Var().Id("data").Id(fmt.Sprintf("%sResponse", m.DowncasedName())),
-		jen.If(
-			jen.Id("err").Op(":=").Sel(
-				jen.Qual("encoding/json", "NewDecoder").Params(jen.Id("resp.Body")),
-				jen.Id("Decode").Params(jen.Op("&").Id("data")),
-			).Op(";").Id("err").Op("!=").Id("nil"),
-		).Block(jen.Return(jen.Id("nil"), jen.Id("err"))),
-		jen.Sel(
-			jen.Id("resp.Body.Close").Call(),
-		),
-		jen.Var().Id("items").Op("=").Make(jen.Index().Id(m.Name), jen.Id("len").Call(jen.Id("data.Items"))),
-		jen.For(jen.List(jen.Id("i"), jen.Id("item"))).Op(":=").Range().Id("data.Items").Block(
-			jen.Id("items").Index(jen.Id("i")).Op("=").Id(m.Name).Block(
-				generateModelResolvers(m, "data.Includes")...,
-			),
-		),
-		jen.Return(jen.Id("items"), jen.Id("nil")),
+		jen.Return(jen.Id("it")),
 	)
 }

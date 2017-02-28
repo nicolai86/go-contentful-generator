@@ -8,6 +8,13 @@ import (
 )
 
 func generateClient(f *jen.File) {
+	f.Var().Id("IteratorDone").Id("error").Op("=").Qual("fmt", "Errorf").Params(jen.Lit("IteratorDone"))
+	f.Type().Id("ListOptions").Struct(
+		jen.Id("Page").Int(),
+		jen.Id("Limit").Int(),
+		jen.Id("IncludeCount").Int(),
+	)
+
 	// TODO return error if not resolvable
 	f.Func().Id("resolveAsset").Params(
 		jen.Id("assetID").String(),

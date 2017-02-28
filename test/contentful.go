@@ -68,6 +68,66 @@ type includeAsset struct {
 	} `json:"fields"`
 }
 
+// AuthorIterator is used to paginate result sets of Author
+type AuthorIterator struct {
+	Page         int
+	Limit        int
+	Offset       int
+	IncludeCount int
+	c            *Client
+	items        []*Author
+}
+
+// Next returns the following item of type Author. If none exists a network request will be executed
+func (it *AuthorIterator) Next() (*Author, error) {
+	if len(it.items) == 0 {
+		if err := it.fetch(); err != nil {
+			return nil, err
+		}
+	}
+	if len(it.items) == 0 {
+		return nil, IteratorDone
+	}
+	var item *Author
+	item, it.items = it.items[len(it.items)-1], it.items[:len(it.items)-1]
+	if len(it.items) == 0 {
+		it.Page++
+		it.Offset = it.Page * it.Limit
+	}
+	return item, nil
+}
+func (it *AuthorIterator) fetch() error {
+	c := it.c
+	var url = fmt.Sprintf("%s/spaces/%s/entries?access_token=%s&content_type=%s&include=%d&locale=%s&limit=%d&skip=%d", c.host, c.spaceID, c.authToken, "1kUEViTN4EmGiEaaeC6ouY", it.IncludeCount, c.Locales[0], it.Limit, it.Offset)
+	resp, err := c.client.Get(url)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Request failed: %s, %v", resp.Status, err)
+	}
+	var data authorResponse
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return err
+	}
+	resp.Body.Close()
+	var items = make([]*Author, len(data.Items))
+	for i, item := range data.Items {
+		items[i] = &Author{
+			ID:             item.Sys.ID,
+			Name:           item.Fields.Name,
+			Website:        item.Fields.Website,
+			ProfilePhoto:   resolveAsset(item.Fields.ProfilePhoto.Sys.ID, data.Includes),
+			Biography:      item.Fields.Biography,
+			CreatedEntries: resolvePosts(item.Fields.CreatedEntries, data.Includes),
+			Age:            item.Fields.Age,
+			Rating:         item.Fields.Rating,
+		}
+	}
+	it.items = items
+	return nil
+}
+
 // Author a
 type Author struct {
 	ID             string
@@ -96,6 +156,9 @@ type authorItem struct {
 
 // authorResponse holds an entire contentful Author response
 type authorResponse struct {
+	Total    int          `json:"total"`
+	Skip     int          `json:"skip"`
+	Limit    int          `json:"limit"`
 	Items    []authorItem `json:"items"`
 	Includes includes     `json:"includes"`
 }
@@ -145,34 +208,74 @@ func resolveAuthors(ids entryIDs, includes includes) []Author {
 }
 
 // Authors retrieves paginated Author entries
-func (c *Client) Authors() ([]Author, error) {
-	var url = fmt.Sprintf("%s/spaces/%s/entries?access_token=%s&content_type=%s&include=10&locale=%s", c.host, c.spaceID, c.authToken, "1kUEViTN4EmGiEaaeC6ouY", c.Locales[0])
-	resp, err := c.client.Get(url)
-	if err != nil {
-		return nil, err
+func (c *Client) Authors(opts ListOptions) *AuthorIterator {
+	if opts.Limit <= 0 {
+		opts.Limit = 100
 	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Request failed: %s, %v", resp.Status, err)
+	it := &AuthorIterator{
+		Page:         opts.Page,
+		Limit:        opts.Limit,
+		IncludeCount: opts.IncludeCount,
+		c:            c,
 	}
-	var data authorResponse
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return nil, err
-	}
-	resp.Body.Close()
-	var items = make([]Author, len(data.Items))
-	for i, item := range data.Items {
-		items[i] = Author{
-			ID:             item.Sys.ID,
-			Name:           item.Fields.Name,
-			Website:        item.Fields.Website,
-			ProfilePhoto:   resolveAsset(item.Fields.ProfilePhoto.Sys.ID, data.Includes),
-			Biography:      item.Fields.Biography,
-			CreatedEntries: resolvePosts(item.Fields.CreatedEntries, data.Includes),
-			Age:            item.Fields.Age,
-			Rating:         item.Fields.Rating,
+	return it
+}
+
+// CategoryIterator is used to paginate result sets of Category
+type CategoryIterator struct {
+	Page         int
+	Limit        int
+	Offset       int
+	IncludeCount int
+	c            *Client
+	items        []*Category
+}
+
+// Next returns the following item of type Category. If none exists a network request will be executed
+func (it *CategoryIterator) Next() (*Category, error) {
+	if len(it.items) == 0 {
+		if err := it.fetch(); err != nil {
+			return nil, err
 		}
 	}
-	return items, nil
+	if len(it.items) == 0 {
+		return nil, IteratorDone
+	}
+	var item *Category
+	item, it.items = it.items[len(it.items)-1], it.items[:len(it.items)-1]
+	if len(it.items) == 0 {
+		it.Page++
+		it.Offset = it.Page * it.Limit
+	}
+	return item, nil
+}
+func (it *CategoryIterator) fetch() error {
+	c := it.c
+	var url = fmt.Sprintf("%s/spaces/%s/entries?access_token=%s&content_type=%s&include=%d&locale=%s&limit=%d&skip=%d", c.host, c.spaceID, c.authToken, "5KMiN6YPvi42icqAUQMCQe", it.IncludeCount, c.Locales[0], it.Limit, it.Offset)
+	resp, err := c.client.Get(url)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Request failed: %s, %v", resp.Status, err)
+	}
+	var data categoryResponse
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return err
+	}
+	resp.Body.Close()
+	var items = make([]*Category, len(data.Items))
+	for i, item := range data.Items {
+		items[i] = &Category{
+			ID:               item.Sys.ID,
+			Title:            item.Fields.Title,
+			ShortDescription: item.Fields.ShortDescription,
+			Icon:             resolveAsset(item.Fields.Icon.Sys.ID, data.Includes),
+			Parent:           resolveEntry(item.Fields.Parent, data.Includes),
+		}
+	}
+	it.items = items
+	return nil
 }
 
 // Category
@@ -197,6 +300,9 @@ type categoryItem struct {
 
 // categoryResponse holds an entire contentful Category response
 type categoryResponse struct {
+	Total    int            `json:"total"`
+	Skip     int            `json:"skip"`
+	Limit    int            `json:"limit"`
 	Items    []categoryItem `json:"items"`
 	Includes includes       `json:"includes"`
 }
@@ -240,31 +346,81 @@ func resolveCategorys(ids entryIDs, includes includes) []Category {
 }
 
 // Categories retrieves paginated Category entries
-func (c *Client) Categories() ([]Category, error) {
-	var url = fmt.Sprintf("%s/spaces/%s/entries?access_token=%s&content_type=%s&include=10&locale=%s", c.host, c.spaceID, c.authToken, "5KMiN6YPvi42icqAUQMCQe", c.Locales[0])
-	resp, err := c.client.Get(url)
-	if err != nil {
-		return nil, err
+func (c *Client) Categories(opts ListOptions) *CategoryIterator {
+	if opts.Limit <= 0 {
+		opts.Limit = 100
 	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Request failed: %s, %v", resp.Status, err)
+	it := &CategoryIterator{
+		Page:         opts.Page,
+		Limit:        opts.Limit,
+		IncludeCount: opts.IncludeCount,
+		c:            c,
 	}
-	var data categoryResponse
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return nil, err
-	}
-	resp.Body.Close()
-	var items = make([]Category, len(data.Items))
-	for i, item := range data.Items {
-		items[i] = Category{
-			ID:               item.Sys.ID,
-			Title:            item.Fields.Title,
-			ShortDescription: item.Fields.ShortDescription,
-			Icon:             resolveAsset(item.Fields.Icon.Sys.ID, data.Includes),
-			Parent:           resolveEntry(item.Fields.Parent, data.Includes),
+	return it
+}
+
+// PostIterator is used to paginate result sets of Post
+type PostIterator struct {
+	Page         int
+	Limit        int
+	Offset       int
+	IncludeCount int
+	c            *Client
+	items        []*Post
+}
+
+// Next returns the following item of type Post. If none exists a network request will be executed
+func (it *PostIterator) Next() (*Post, error) {
+	if len(it.items) == 0 {
+		if err := it.fetch(); err != nil {
+			return nil, err
 		}
 	}
-	return items, nil
+	if len(it.items) == 0 {
+		return nil, IteratorDone
+	}
+	var item *Post
+	item, it.items = it.items[len(it.items)-1], it.items[:len(it.items)-1]
+	if len(it.items) == 0 {
+		it.Page++
+		it.Offset = it.Page * it.Limit
+	}
+	return item, nil
+}
+func (it *PostIterator) fetch() error {
+	c := it.c
+	var url = fmt.Sprintf("%s/spaces/%s/entries?access_token=%s&content_type=%s&include=%d&locale=%s&limit=%d&skip=%d", c.host, c.spaceID, c.authToken, "2wKn6yEnZewu2SCCkus4as", it.IncludeCount, c.Locales[0], it.Limit, it.Offset)
+	resp, err := c.client.Get(url)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Request failed: %s, %v", resp.Status, err)
+	}
+	var data postResponse
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return err
+	}
+	resp.Body.Close()
+	var items = make([]*Post, len(data.Items))
+	for i, item := range data.Items {
+		items[i] = &Post{
+			ID:            item.Sys.ID,
+			Title:         item.Fields.Title,
+			Slug:          item.Fields.Slug,
+			Author:        resolveAuthors(item.Fields.Author, data.Includes),
+			Body:          item.Fields.Body,
+			Category:      resolveCategorys(item.Fields.Category, data.Includes),
+			Tags:          item.Fields.Tags,
+			FeaturedImage: resolveAsset(item.Fields.FeaturedImage.Sys.ID, data.Includes),
+			Date:          item.Fields.Date,
+			Comments:      item.Fields.Comments,
+			Approver:      resolveEntry(item.Fields.Approver, data.Includes),
+			AuthorOrPost:  resolveEntries(item.Fields.AuthorOrPost, data.Includes),
+		}
+	}
+	it.items = items
+	return nil
 }
 
 // Post
@@ -303,6 +459,9 @@ type postItem struct {
 
 // postResponse holds an entire contentful Post response
 type postResponse struct {
+	Total    int        `json:"total"`
+	Skip     int        `json:"skip"`
+	Limit    int        `json:"limit"`
 	Items    []postItem `json:"items"`
 	Includes includes   `json:"includes"`
 }
@@ -360,39 +519,27 @@ func resolvePosts(ids entryIDs, includes includes) []Post {
 }
 
 // Posts retrieves paginated Post entries
-func (c *Client) Posts() ([]Post, error) {
-	var url = fmt.Sprintf("%s/spaces/%s/entries?access_token=%s&content_type=%s&include=10&locale=%s", c.host, c.spaceID, c.authToken, "2wKn6yEnZewu2SCCkus4as", c.Locales[0])
-	resp, err := c.client.Get(url)
-	if err != nil {
-		return nil, err
+func (c *Client) Posts(opts ListOptions) *PostIterator {
+	if opts.Limit <= 0 {
+		opts.Limit = 100
 	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Request failed: %s, %v", resp.Status, err)
+	it := &PostIterator{
+		Page:         opts.Page,
+		Limit:        opts.Limit,
+		IncludeCount: opts.IncludeCount,
+		c:            c,
 	}
-	var data postResponse
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return nil, err
-	}
-	resp.Body.Close()
-	var items = make([]Post, len(data.Items))
-	for i, item := range data.Items {
-		items[i] = Post{
-			ID:            item.Sys.ID,
-			Title:         item.Fields.Title,
-			Slug:          item.Fields.Slug,
-			Author:        resolveAuthors(item.Fields.Author, data.Includes),
-			Body:          item.Fields.Body,
-			Category:      resolveCategorys(item.Fields.Category, data.Includes),
-			Tags:          item.Fields.Tags,
-			FeaturedImage: resolveAsset(item.Fields.FeaturedImage.Sys.ID, data.Includes),
-			Date:          item.Fields.Date,
-			Comments:      item.Fields.Comments,
-			Approver:      resolveEntry(item.Fields.Approver, data.Includes),
-			AuthorOrPost:  resolveEntries(item.Fields.AuthorOrPost, data.Includes),
-		}
-	}
-	return items, nil
+	return it
 }
+
+var IteratorDone error = fmt.Errorf("IteratorDone")
+
+type ListOptions struct {
+	Page         int
+	Limit        int
+	IncludeCount int
+}
+
 func resolveAsset(assetID string, includes includes) Asset {
 	for _, asset := range includes.Assets {
 		if asset.Sys.ID == assetID {

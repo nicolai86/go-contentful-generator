@@ -36,6 +36,7 @@ Or, you can use a go-generate flag like this:
 ## TODO
 
 - [ ] multi-language schema
-- [ ] pagination
 - [ ] tests
 - [ ] certificate pinning
+- [ ] generic entry resolver (return []interface{} )
+- [ ] generic entry by id resolver (return interface{} )
