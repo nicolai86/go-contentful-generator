@@ -2,10 +2,14 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/davelondon/jennifer/jen"
 )
+
+// ContentfulCDNURL is the public domain of contentfuls public CDN
+const ContentfulCDNURL = "cdn.contentful.com"
 
 func generateClient(f *jen.File) {
 	f.Var().Id("IteratorDone").Id("error").Op("=").Qual("fmt", "Errorf").Params(jen.Lit("IteratorDone"))
@@ -84,7 +88,14 @@ func generateClient(f *jen.File) {
 		jen.Id("authToken").String(),
 		jen.Id("Locales").Index().String(),
 		jen.Id("client").Op("*").Qual("net/http", "Client"),
+		jen.Id("pool").Op("*").Qual("crypto/x509", "CertPool"),
 	)
+
+	f.Const().Id("ContentfulCDNURL").Op("=").Lit(ContentfulCDNURL)
+	cert, err := fetchCerts()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// TODO include cert pool
 	f.Comment("New returns a contentful client")
@@ -92,12 +103,21 @@ func generateClient(f *jen.File) {
 		jen.Id("authToken").String(),
 		jen.Id("locales").Index().String(),
 	).Op("*").Id("Client").Block(
+		jen.Id("pool").Op(":=").Qual("crypto/x509", "NewCertPool").Params(),
+		jen.Sel(jen.Id("pool"), jen.Id("AppendCertsFromPEM")).Params(jen.Id("[]byte").Params(jen.Lit(cert))),
 		jen.Return(jen.Op("&").Id("Client").Block(
-			jen.Id("host").Op(":").Lit("https://cdn.contentful.com").Op(","),
+			jen.Id("host").Op(":").Qual("fmt", "Sprintf").Params(jen.Lit("https://%s"), jen.Id("ContentfulCDNURL")).Op(","),
 			jen.Id("spaceID").Op(":").Lit(os.Getenv("CONTENTFUL_SPACE_ID")).Op(","),
 			jen.Id("authToken").Op(":").Id("authToken").Op(","),
 			jen.Id("Locales").Op(":").Id("locales").Op(","),
-			jen.Id("client").Op(":").Op("&").Qual("net/http", "Client").Block().Op(","),
+			jen.Id("pool").Op(":").Id("pool").Op(","),
+			jen.Id("client").Op(":").Op("&").Qual("net/http", "Client").Block(
+				jen.Id("Transport").Op(":").Op("&").Qual("net/http", "Transport").Block(
+					jen.Id("TLSClientConfig").Op(":").Op("&").Qual("crypto/tls", "Config").Block(
+						jen.Id("RootCAs").Op(":").Id("pool").Op(","),
+					).Op(","),
+				).Op(","),
+			).Op(","),
 		)),
 	)
 }
