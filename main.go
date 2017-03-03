@@ -71,6 +71,10 @@ func init() {
 	json.Unmarshal(bs, &data)
 	resp.Body.Close()
 	models = data.Items
+
+	for i := range models {
+		models[i].Name = strings.Replace(models[i].Name, " ", "", -1)
+	}
 }
 
 func main() {
