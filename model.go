@@ -231,7 +231,7 @@ func generateModelType(f *jen.File, m contentfulModel) {
 		jen.Id("Includes").Id("includes").Tag(map[string]string{"json": "includes"}),
 	)
 
-	f.Func().Id(fmt.Sprintf("resolve%s", m.Name)).Params(
+	f.Func().Id(fmt.Sprintf("resolve%s", m.CapitalizedName())).Params(
 		jen.Id("entryID").String(),
 		jen.Id("includes").Id("includes"),
 	).Id(m.Name).Block(
@@ -245,7 +245,7 @@ func generateModelType(f *jen.File, m contentfulModel) {
 		jen.Return(jen.Id(m.Name).Block()),
 	)
 
-	f.Func().Id(fmt.Sprintf("resolve%ss", m.Name)).Params(
+	f.Func().Id(fmt.Sprintf("resolve%ss", m.CapitalizedName())).Params(
 		jen.Id("ids").Id("entryIDs"),
 		jen.Id("includes").Id("includes"),
 	).Index().Id(m.Name).Block(
