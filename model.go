@@ -200,8 +200,14 @@ func generateModelType(f *jen.File, m contentfulModel) {
 				jen.Id("Decode").Params(jen.Op("&").Id("data")),
 			).Op(";").Id("err").Op("!=").Id("nil"),
 		).Block(jen.Return(jen.Id("err"))),
-		jen.Sel(
-			jen.Id("resp.Body.Close").Call(),
+		jen.If(
+			jen.Id("err").Op(":=").Sel(
+				jen.Id("resp"),
+				jen.Id("Body"),
+				jen.Id("Close").Call(),
+			).Op(";").Id("err").Op("!=").Id("nil").Block(
+				jen.Return(jen.Id("err")),
+			),
 		),
 		jen.Var().Id("items").Op("=").Make(jen.Index().Op("*").Id(m.Name), jen.Id("len").Call(jen.Id("data.Items"))),
 		jen.For(jen.List(jen.Id("i"), jen.Id("item"))).Op(":=").Range().Id("data.Items").Block(
@@ -238,7 +244,9 @@ func generateModelType(f *jen.File, m contentfulModel) {
 		jen.Var().Id("item").Id(fmt.Sprintf("%sItem", m.DowncasedName())),
 		jen.For(jen.List(jen.Id("_"), jen.Id("entry"))).Op(":=").Range().Id("includes.Entries").Block(
 			jen.If(jen.Id("entry.Sys.ID").Op("==").Id("entryID")).Block(
-				jen.Qual("encoding/json", "Unmarshal").Params(jen.Op("*").Id("entry.Fields"), jen.Op("&").Id("item.Fields")),
+				jen.If(jen.Id("err").Op(":=").Qual("encoding/json", "Unmarshal").Params(jen.Op("*").Id("entry.Fields"), jen.Op("&").Id("item.Fields")).Op(";").Id("err").Op("!=").Id("nil")).Block(
+					jen.Return(jen.Id(m.Name).Block()),
+				),
 				jen.Return(jen.Id(m.Name).Block(generateModelResolvers(m, "includes")...)),
 			),
 		),
@@ -258,7 +266,9 @@ func generateModelType(f *jen.File, m contentfulModel) {
 				jen.Id("included").Op("=").Id("included").Op("||").Id("entryID.Sys.ID").Op("==").Id("entry.Sys.ID"),
 			),
 			jen.If(jen.Id("included").Op("==").Lit(true)).Block(
-				jen.Qual("encoding/json", "Unmarshal").Params(jen.Op("*").Id("entry.Fields"), jen.Op("&").Id("item.Fields")),
+				jen.If(jen.Id("err").Op(":=").Qual("encoding/json", "Unmarshal").Params(jen.Op("*").Id("entry.Fields"), jen.Op("&").Id("item.Fields")).Op(";").Id("err").Op("!=").Id("nil")).Block(
+					jen.Return(jen.Id("items")),
+				),
 				jen.Id("items").Op("=").Append(jen.Id("items"), jen.Id(m.Name).Block(generateModelResolvers(m, "includes")...)),
 			),
 		),
