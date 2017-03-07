@@ -104,6 +104,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Fprintf(file, "%#v", f)
+	if err := f.Render(file); err != nil {
+		log.Fatal(err)
+	}
 	file.Close()
 }
