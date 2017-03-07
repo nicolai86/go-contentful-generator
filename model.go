@@ -40,13 +40,21 @@ func generateModelResolvers(m contentfulModel, includes string) []jen.Code {
 				}
 
 				// single type referenced, convert to typed array
-				// FIXME recursive types
-				if len(linkedTypes) == 1 && m.Name != linkedTypes[0] {
-					parseSts = append(parseSts, jen.Id(fieldName).Op(":").Id(fmt.Sprintf("resolve%s", linkedTypes[0])).Params(
-						jen.Sel(
-							jen.Id("item"), jen.Id("Fields"), jen.Id(fieldName), jen.Id("Sys"), jen.Id("ID"),
-						), jen.Id(includes),
-					).Op(","))
+				if len(linkedTypes) == 1 {
+					if m.Name == linkedTypes[0] {
+						// recursive types
+						parseSts = append(parseSts, jen.Id(fieldName).Op(":").Id(fmt.Sprintf("resolve%sPtr", linkedTypes[0])).Params(
+							jen.Sel(
+								jen.Id("item"), jen.Id("Fields"), jen.Id(fieldName), jen.Id("Sys"), jen.Id("ID"),
+							), jen.Id(includes),
+						).Op(","))
+					} else {
+						parseSts = append(parseSts, jen.Id(fieldName).Op(":").Id(fmt.Sprintf("resolve%s", linkedTypes[0])).Params(
+							jen.Sel(
+								jen.Id("item"), jen.Id("Fields"), jen.Id(fieldName), jen.Id("Sys"), jen.Id("ID"),
+							), jen.Id(includes),
+						).Op(","))
+					}
 				} else {
 					parseSts = append(parseSts, jen.Id(fieldName).Op(":").Id("resolveEntry").Params(jen.Sel(jen.Id("item"), jen.Id("Fields"), jen.Id(fieldName)), jen.Id(includes)).Op(","))
 				}
@@ -69,9 +77,13 @@ func generateModelResolvers(m contentfulModel, includes string) []jen.Code {
 
 				// single type referenced, convert to typed array
 				// FIXME recursive types
-				if len(linkedTypes) == 1 && m.Name != linkedTypes[0] {
+				if len(linkedTypes) == 1 {
 					targetName := linkedTypes[0]
-					parseSts = append(parseSts, jen.Id(fieldName).Op(":").Id(fmt.Sprintf("resolve%ss", targetName)).Params(jen.Sel(jen.Id("item"), jen.Id("Fields"), jen.Id(fieldName)), jen.Id(includes)).Op(","))
+					if targetName == m.Name {
+						parseSts = append(parseSts, jen.Id(fieldName).Op(":").Id(fmt.Sprintf("resolve%ssPtr", targetName)).Params(jen.Sel(jen.Id("item"), jen.Id("Fields"), jen.Id(fieldName)), jen.Id(includes)).Op(","))
+					} else {
+						parseSts = append(parseSts, jen.Id(fieldName).Op(":").Id(fmt.Sprintf("resolve%ss", targetName)).Params(jen.Sel(jen.Id("item"), jen.Id("Fields"), jen.Id(fieldName)), jen.Id(includes)).Op(","))
+					}
 				} else {
 					parseSts = append(parseSts, jen.Id(fieldName).Op(":").Id("resolveEntries").Params(jen.Sel(jen.Id("item"), jen.Id("Fields"), jen.Id(fieldName)), jen.Id(includes)).Op(","))
 				}
@@ -141,9 +153,13 @@ func generateModelAttributes(m contentfulModel) []jen.Code {
 				}
 
 				// single type referenced, convert to typed array
-				// FIXME recursive types
-				if len(linkedTypes) == 1 && m.Name != linkedTypes[0] {
-					sts = append(sts, jen.Id(fieldName).Id(linkedTypes[0]))
+				if len(linkedTypes) == 1 {
+					if m.Name == linkedTypes[0] {
+						// recursive type
+						sts = append(sts, jen.Id(fieldName).Op("*").Id(linkedTypes[0]))
+					} else {
+						sts = append(sts, jen.Id(fieldName).Id(linkedTypes[0]))
+					}
 				} else {
 					sts = append(sts, jen.Id(fieldName).Interface())
 				}
@@ -164,9 +180,13 @@ func generateModelAttributes(m contentfulModel) []jen.Code {
 				}
 
 				// single type referenced, convert to typed array
-				// FIXME recursive types
-				if len(linkedTypes) == 1 && m.Name != linkedTypes[0] {
-					sts = append(sts, jen.Id(fieldName).Index().Id(linkedTypes[0]))
+				if len(linkedTypes) == 1 {
+					if m.Name == linkedTypes[0] {
+						//  recursive types
+						sts = append(sts, jen.Id(fieldName).Index().Op("*").Id(linkedTypes[0]))
+					} else {
+						sts = append(sts, jen.Id(fieldName).Index().Id(linkedTypes[0]))
+					}
 				} else {
 					sts = append(sts, jen.Id(fieldName).Index().Interface())
 				}
@@ -290,6 +310,26 @@ func generateModelType(f *jen.File, m contentfulModel) {
 			),
 		),
 		jen.Return(jen.Id(m.Name).Block()),
+	)
+
+	f.Func().Id(fmt.Sprintf("resolve%sPtr", m.CapitalizedName())).Params(
+		jen.Id("entryID").String(),
+		jen.Id("includes").Id("includes"),
+	).Op("*").Id(m.Name).Block(
+		jen.Var().Id("item").Op("=").Id(fmt.Sprintf("resolve%s", m.CapitalizedName())).Params(jen.Id("entryID"), jen.Id("includes")),
+		jen.Return(jen.Op("&").Id("item")),
+	)
+
+	f.Func().Id(fmt.Sprintf("resolve%ssPtr", m.CapitalizedName())).Params(
+		jen.Id("ids").Id("entryIDs"),
+		jen.Id("includes").Id("includes"),
+	).Index().Op("*").Id(m.Name).Block(
+		jen.Var().Id("items").Op("=").Id(fmt.Sprintf("resolve%ss", m.CapitalizedName())).Params(jen.Id("ids"), jen.Id("includes")),
+		jen.Var().Id("ptrs").Index().Op("*").Id(m.Name),
+		jen.For(jen.List(jen.Id("_"), jen.Id("entry"))).Op(":=").Range().Id("items").Block(
+			jen.Id("ptrs").Op("=").Append(jen.Id("ptrs"), jen.Op("&").Id("entry")),
+		),
+		jen.Return(jen.Id("ptrs")),
 	)
 
 	f.Func().Id(fmt.Sprintf("resolve%ss", m.CapitalizedName())).Params(
