@@ -40,8 +40,13 @@ func generateModelResolvers(m contentfulModel, includes string) []jen.Code {
 				}
 
 				// single type referenced, convert to typed array
-				if len(linkedTypes) == 1 {
-					parseSts = append(parseSts, jen.Id(fieldName).Op(":").Id(fmt.Sprintf("resolve%s", linkedTypes[0])).Params(jen.Sel(jen.Id("item"), jen.Id("Fields"), jen.Id(fieldName)), jen.Id(includes)).Op(","))
+				// FIXME recursive types
+				if len(linkedTypes) == 1 && m.Name != linkedTypes[0] {
+					parseSts = append(parseSts, jen.Id(fieldName).Op(":").Id(fmt.Sprintf("resolve%s", linkedTypes[0])).Params(
+						jen.Sel(
+							jen.Id("item"), jen.Id("Fields"), jen.Id(fieldName), jen.Id("Sys"), jen.Id("ID"),
+						), jen.Id(includes),
+					).Op(","))
 				} else {
 					parseSts = append(parseSts, jen.Id(fieldName).Op(":").Id("resolveEntry").Params(jen.Sel(jen.Id("item"), jen.Id("Fields"), jen.Id(fieldName)), jen.Id(includes)).Op(","))
 				}
@@ -63,7 +68,8 @@ func generateModelResolvers(m contentfulModel, includes string) []jen.Code {
 				}
 
 				// single type referenced, convert to typed array
-				if len(linkedTypes) == 1 {
+				// FIXME recursive types
+				if len(linkedTypes) == 1 && m.Name != linkedTypes[0] {
 					targetName := linkedTypes[0]
 					parseSts = append(parseSts, jen.Id(fieldName).Op(":").Id(fmt.Sprintf("resolve%ss", targetName)).Params(jen.Sel(jen.Id("item"), jen.Id("Fields"), jen.Id(fieldName)), jen.Id(includes)).Op(","))
 				} else {
@@ -135,7 +141,8 @@ func generateModelAttributes(m contentfulModel) []jen.Code {
 				}
 
 				// single type referenced, convert to typed array
-				if len(linkedTypes) == 1 {
+				// FIXME recursive types
+				if len(linkedTypes) == 1 && m.Name != linkedTypes[0] {
 					sts = append(sts, jen.Id(fieldName).Id(linkedTypes[0]))
 				} else {
 					sts = append(sts, jen.Id(fieldName).Interface())
@@ -157,7 +164,8 @@ func generateModelAttributes(m contentfulModel) []jen.Code {
 				}
 
 				// single type referenced, convert to typed array
-				if len(linkedTypes) == 1 {
+				// FIXME recursive types
+				if len(linkedTypes) == 1 && m.Name != linkedTypes[0] {
 					sts = append(sts, jen.Id(fieldName).Index().Id(linkedTypes[0]))
 				} else {
 					sts = append(sts, jen.Id(fieldName).Index().Interface())
