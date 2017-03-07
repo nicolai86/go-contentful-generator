@@ -74,7 +74,7 @@ func generateClient(f *jen.File) {
 				}
 			}),
 		),
-		jen.Return(jen.Id("nil")),
+		jen.Return(jen.Nil()),
 	)
 
 	f.Comment("Client")
