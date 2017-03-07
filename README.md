@@ -21,7 +21,9 @@ $ export CONTENTFUL_SPACE_ID=awesome-space
 $ export CONTENTFUL_AUTH_TOKEN=secret-token
 ```
 
-then generate your package: 
+the `CONTENTFUL_AUTH_TOKEN` has to be for the [CMA](https://www.contentful.com/developers/docs/references/authentication/#).
+
+Then generate your package: 
 
 ```
 $ go-contentful-generator -pkg contentful -o contentful.go
@@ -37,6 +39,3 @@ Or, you can use a go-generate flag like this:
 
 - [ ] multi-language schema
 - [ ] tests
-- [ ] certificate pinning
-- [ ] generic entry resolver (return []interface{} )
-- [ ] generic entry by id resolver (return interface{} )

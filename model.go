@@ -28,8 +28,24 @@ func generateModelResolvers(m contentfulModel, includes string) []jen.Code {
 			if field.LinkType == "Asset" {
 				parseSts = append(parseSts, jen.Id(fieldName).Op(":").Id("resolveAsset").Params(jen.Sel(jen.Id("item"), jen.Id("Fields"), jen.Id(fieldName), jen.Id("Sys"), jen.Id("ID")), jen.Id(includes)).Op(","))
 			} else if field.LinkType == "Entry" {
-				// FIXME if possible find singular type reference
-				parseSts = append(parseSts, jen.Id(fieldName).Op(":").Id("resolveEntry").Params(jen.Sel(jen.Id("item"), jen.Id("Fields"), jen.Id(fieldName)), jen.Id(includes)).Op(","))
+				var linkedTypes []string
+				for _, validation := range field.Validations {
+					for _, linked := range validation.LinkContentType {
+						for _, model := range models {
+							if model.Sys.ID == linked {
+								linkedTypes = append(linkedTypes, model.Name)
+							}
+						}
+					}
+				}
+
+				// single type referenced, convert to typed array
+				if len(linkedTypes) == 1 {
+					parseSts = append(parseSts, jen.Id(fieldName).Op(":").Id(fmt.Sprintf("resolve%s", linkedTypes[0])).Params(jen.Sel(jen.Id("item"), jen.Id("Fields"), jen.Id(fieldName)), jen.Id(includes)).Op(","))
+				} else {
+					parseSts = append(parseSts, jen.Id(fieldName).Op(":").Id("resolveEntry").Params(jen.Sel(jen.Id("item"), jen.Id("Fields"), jen.Id(fieldName)), jen.Id(includes)).Op(","))
+				}
+
 			}
 		} else if field.Type == "Array" {
 			if field.Items.Type == "Symbol" || field.Items.Type == "Text" {
@@ -107,8 +123,23 @@ func generateModelAttributes(m contentfulModel) []jen.Code {
 			if field.LinkType == "Asset" {
 				sts = append(sts, jen.Id(fieldName).Id("Asset"))
 			} else if field.LinkType == "Entry" {
-				// FIXME if possible find singular type reference
-				sts = append(sts, jen.Id(fieldName).Interface())
+				var linkedTypes []string
+				for _, validation := range field.Validations {
+					for _, linked := range validation.LinkContentType {
+						for _, model := range models {
+							if model.Sys.ID == linked {
+								linkedTypes = append(linkedTypes, model.Name)
+							}
+						}
+					}
+				}
+
+				// single type referenced, convert to typed array
+				if len(linkedTypes) == 1 {
+					sts = append(sts, jen.Id(fieldName).Id(linkedTypes[0]))
+				} else {
+					sts = append(sts, jen.Id(fieldName).Interface())
+				}
 			}
 		} else if field.Type == "Array" {
 			if field.Items.Type == "Symbol" || field.Items.Type == "Text" {

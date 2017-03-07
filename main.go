@@ -27,6 +27,9 @@ type field struct {
 			LinkContentType []string `json:"linkContentType"`
 		} `json:"validations"`
 	}
+	Validations []struct {
+		LinkContentType []string `json:"linkContentType"`
+	} `json:"validations"`
 }
 
 type contentfulModel struct {
@@ -58,10 +61,12 @@ var (
 	models []contentfulModel
 )
 
-const endpoint = "https://cdn.contentful.com"
+// content delivery api endpoint
+const cdaEndpoint = "https://cdn.contentful.com"
+const cmaEndpoint = "https://api.contentful.com"
 
 func init() {
-	var url = fmt.Sprintf("%s/spaces/%s/content_types?access_token=%s", endpoint, os.Getenv("CONTENTFUL_SPACE_ID"), os.Getenv("CONTENTFUL_AUTH_TOKEN"))
+	var url = fmt.Sprintf("%s/spaces/%s/content_types?access_token=%s", cmaEndpoint, os.Getenv("CONTENTFUL_SPACE_ID"), os.Getenv("CONTENTFUL_AUTH_TOKEN"))
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Fatal(err)
