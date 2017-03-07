@@ -39,3 +39,4 @@ Or, you can use a go-generate flag like this:
 
 - [ ] multi-language schema
 - [ ] tests
+- [ ] recursive type resolution (needs to look at includes & items)
