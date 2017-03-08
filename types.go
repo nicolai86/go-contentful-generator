@@ -55,13 +55,13 @@ func generateDateType(f *jen.File) {
 		jen.Id("b").Index().Byte(),
 	).Id("error").Block(
 		jen.Id("s").Op(":=").Qual("strings", "Trim").Call(
-			jen.Id("string").Parens(jen.Id("b")), 
+			jen.Id("string").Parens(jen.Id("b")),
 			jen.Lit("\""),
 		),
 		jen.If(jen.Id("s").Op("==").Lit("null")).Block(
 			jen.Op("*").Id("d").Op("=").Id("Date").Call(jen.Qual("time", "Time").Dict(nil)),
 		),
-		jen.List(jen.Id("t"), jen.Err().Op(":=").Qual("time", "Parse").Call(jen.Id("dateLayout"), jen.Id("s")),
+		jen.List(jen.Id("t"), jen.Err().Op(":=").Qual("time", "Parse").Call(jen.Id("dateLayout"), jen.Id("s"))),
 		jen.Op("*").Id("d").Op("=").Id("Date").Call(jen.Id("t")),
 		jen.Return(jen.Err()),
 	)
