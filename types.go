@@ -53,16 +53,17 @@ func generateDateType(f *jen.File) {
 		jen.Id("d").Op("*").Id("Date"),
 	).Id("UnmarshalJSON").Params(
 		jen.Id("b").Index().Byte(),
-	).Call(
-		jen.Id("error"),
-	).Block(
-		jen.Id("s").Op(":=").Qual("strings", "Trim").Call(jen.Id("string").Call(jen.Id("b")), jen.Lit("\"")),
-		jen.If(jen.Id("s").Op("==").Lit("null")).Block(
-			jen.Op("*").Id("d").Op("=").Id("Date").Call(jen.Qual("time", "Time").Block()),
+	).Id("error").Block(
+		jen.Id("s").Op(":=").Qual("strings", "Trim").Call(
+			jen.Id("string").Parens(jen.Id("b")),
+			jen.Lit("\""),
 		),
-		jen.List(jen.Id("t"), jen.Id("err")).Op(":=").Qual("time", "Parse").Call(jen.Id("dateLayout"), jen.Id("s")),
+		jen.If(jen.Id("s").Op("==").Lit("null")).Block(
+			jen.Op("*").Id("d").Op("=").Id("Date").Call(jen.Qual("time", "Time").Dict(nil)),
+		),
+		jen.List(jen.Id("t"), jen.Err().Op(":=").Qual("time", "Parse").Call(jen.Id("dateLayout"), jen.Id("s"))),
 		jen.Op("*").Id("d").Op("=").Id("Date").Call(jen.Id("t")),
-		jen.Return(jen.Id("err")),
+		jen.Return(jen.Err()),
 	)
 }
 
