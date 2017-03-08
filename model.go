@@ -22,7 +22,7 @@ func linkedContentTypes(vs []validation) []string {
 	return linkedTypes
 }
 
-func generateModelResolvers(model contentfulModel, includes string) func(map[jen.Code]jen.Code) {
+func generateModelResolvers(model contentfulModel, items, includes string) func(map[jen.Code]jen.Code) {
 	return func(m map[jen.Code]jen.Code) {
 		m[jen.Id("ID")] = jen.Id("item.Sys.ID")
 
@@ -47,17 +47,20 @@ func generateModelResolvers(model contentfulModel, includes string) func(map[jen
 							// recursive types
 							m[jen.Id(fieldName)] = jen.Id(fmt.Sprintf("resolve%sPtr", linkedTypes[0])).Call(
 								jen.Sel(jen.Id("item"), jen.Id("Fields"), jen.Id(fieldName), jen.Id("Sys"), jen.Id("ID")),
+								jen.Id(items),
 								jen.Id(includes),
 							)
 						} else {
 							m[jen.Id(fieldName)] = jen.Id(fmt.Sprintf("resolve%s", linkedTypes[0])).Call(
 								jen.Sel(jen.Id("item"), jen.Id("Fields"), jen.Id(fieldName), jen.Id("Sys"), jen.Id("ID")),
+								jen.Id(items),
 								jen.Id(includes),
 							)
 						}
 					} else {
 						m[jen.Id(fieldName)] = jen.Id("resolveEntry").Call(
 							jen.Sel(jen.Id("item"), jen.Id("Fields"), jen.Id(fieldName)),
+							jen.Id(items),
 							jen.Id(includes),
 						)
 					}
@@ -75,17 +78,20 @@ func generateModelResolvers(model contentfulModel, includes string) func(map[jen
 						if targetName == model.Name {
 							m[jen.Id(fieldName)] = jen.Id(fmt.Sprintf("resolve%ssPtr", targetName)).Call(
 								jen.Sel(jen.Id("item"), jen.Id("Fields"), jen.Id(fieldName)),
+								jen.Id(items),
 								jen.Id(includes),
 							)
 						} else {
 							m[jen.Id(fieldName)] = jen.Id(fmt.Sprintf("resolve%ss", targetName)).Call(
 								jen.Sel(jen.Id("item"), jen.Id("Fields"), jen.Id(fieldName)),
+								jen.Id(items),
 								jen.Id(includes),
 							)
 						}
 					} else {
 						m[jen.Id(fieldName)] = jen.Id("resolveEntries").Call(
 							jen.Sel(jen.Id("item"), jen.Id("Fields"), jen.Id(fieldName)),
+							jen.Id(items),
 							jen.Id(includes),
 						)
 					}
@@ -274,9 +280,11 @@ func generateModelType(f *jen.File, m contentfulModel) {
 			jen.Return(jen.Err()),
 		),
 		jen.Var().Id("items").Op("=").Make(jen.Index().Op("*").Id(m.Name), jen.Len(jen.Id("data.Items"))),
-		jen.For(jen.List(jen.Id("i"), jen.Id("item")).Op(":=").Range().Id("data.Items")).Block(
+		jen.For(jen.List(jen.Id("i"), jen.Id("raw")).Op(":=").Range().Id("data.Items")).Block(
+			jen.Var().Id("item").Id(fmt.Sprintf("%sItem", m.DowncasedName())),
+			jen.Qual("encoding/json", "Unmarshal").Call(jen.Id("*raw.Fields"), jen.Op("&").Id("item.Fields")),
 			jen.Id("items").Index(jen.Id("i")).Op("=").Op("&").Id(m.Name).DictFunc(
-				generateModelResolvers(m, "data.Includes"),
+				generateModelResolvers(m, "data.Items", "data.Includes"),
 			),
 		),
 		jen.Id("it.items").Op("=").Id("items"),
@@ -297,12 +305,13 @@ func generateModelType(f *jen.File, m contentfulModel) {
 		jen.Id("Total").Int().Tag(map[string]string{"json": "total"}),
 		jen.Id("Skip").Int().Tag(map[string]string{"json": "skip"}),
 		jen.Id("Limit").Int().Tag(map[string]string{"json": "limit"}),
-		jen.Id("Items").Index().Id(fmt.Sprintf("%sItem", m.DowncasedName())).Tag(map[string]string{"json": "items"}),
+		jen.Id("Items").Index().Id("includeEntry").Tag(map[string]string{"json": "items"}),
 		jen.Id("Includes").Id("includes").Tag(map[string]string{"json": "includes"}),
 	)
 
 	f.Func().Id(fmt.Sprintf("resolve%s", m.CapitalizedName())).Params(
 		jen.Id("entryID").String(),
+		jen.Id("items").Index().Id("includeEntry"),
 		jen.Id("includes").Id("includes"),
 	).Id(m.Name).Block(
 		jen.Var().Id("item").Id(fmt.Sprintf("%sItem", m.DowncasedName())),
@@ -317,7 +326,21 @@ func generateModelType(f *jen.File, m contentfulModel) {
 				).Block(
 					jen.Return(jen.Id(m.Name).Dict(nil)),
 				),
-				jen.Return(jen.Id(m.Name).DictFunc(generateModelResolvers(m, "includes"))),
+				jen.Return(jen.Id(m.Name).DictFunc(generateModelResolvers(m, "items", "includes"))),
+			),
+		),
+		jen.For(jen.List(jen.Id("_"), jen.Id("entry")).Op(":=").Range().Id("items")).Block(
+			jen.If(jen.Id("entry.Sys.ID").Op("==").Id("entryID")).Block(
+				jen.If(
+					jen.Err().Op(":=").Qual("encoding/json", "Unmarshal").Call(
+						jen.Op("*").Id("entry.Fields"),
+						jen.Op("&").Id("item.Fields"),
+					),
+					jen.Err().Op("!=").Nil(),
+				).Block(
+					jen.Return(jen.Id(m.Name).Dict(nil)),
+				),
+				jen.Return(jen.Id(m.Name).DictFunc(generateModelResolvers(m, "items", "includes"))),
 			),
 		),
 		jen.Return(jen.Id(m.Name).Dict(nil)),
@@ -325,10 +348,12 @@ func generateModelType(f *jen.File, m contentfulModel) {
 
 	f.Func().Id(fmt.Sprintf("resolve%sPtr", m.CapitalizedName())).Params(
 		jen.Id("entryID").String(),
+		jen.Id("items").Index().Id("includeEntry"),
 		jen.Id("includes").Id("includes"),
 	).Op("*").Id(m.Name).Block(
 		jen.Var().Id("item").Op("=").Id(fmt.Sprintf("resolve%s", m.CapitalizedName())).Call(
 			jen.Id("entryID"),
+			jen.Id("items"),
 			jen.Id("includes"),
 		),
 		jen.Return(jen.Op("&").Id("item")),
@@ -336,10 +361,12 @@ func generateModelType(f *jen.File, m contentfulModel) {
 
 	f.Func().Id(fmt.Sprintf("resolve%ssPtr", m.CapitalizedName())).Params(
 		jen.Id("ids").Id("entryIDs"),
+		jen.Id("its").Index().Id("includeEntry"),
 		jen.Id("includes").Id("includes"),
 	).Index().Op("*").Id(m.Name).Block(
 		jen.Var().Id("items").Op("=").Id(fmt.Sprintf("resolve%ss", m.CapitalizedName())).Call(
 			jen.Id("ids"),
+			jen.Id("its"),
 			jen.Id("includes"),
 		),
 		jen.Var().Id("ptrs").Index().Op("*").Id(m.Name),
@@ -351,12 +378,13 @@ func generateModelType(f *jen.File, m contentfulModel) {
 
 	f.Func().Id(fmt.Sprintf("resolve%ss", m.CapitalizedName())).Params(
 		jen.Id("ids").Id("entryIDs"),
+		jen.Id("its").Index().Id("includeEntry"),
 		jen.Id("includes").Id("includes"),
 	).Index().Id(m.Name).Block(
 		jen.Var().Id("items").Index().Id(m.Name),
-		jen.Var().Id("item").Id(fmt.Sprintf("%sItem", m.DowncasedName())),
 
 		jen.For(jen.List(jen.Id("_"), jen.Id("entry")).Op(":=").Range().Id("includes.Entries")).Block(
+			jen.Var().Id("item").Id(fmt.Sprintf("%sItem", m.DowncasedName())),
 			jen.Var().Id("included").Op("=").Lit(false),
 			jen.For(jen.List(jen.Id("_"), jen.Id("entryID")).Op(":=").Range().Id("ids")).Block(
 				jen.Id("included").Op("=").Id("included").Op("||").Id("entryID.Sys.ID").Op("==").Id("entry.Sys.ID"),
@@ -373,7 +401,30 @@ func generateModelType(f *jen.File, m contentfulModel) {
 				),
 				jen.Id("items").Op("=").Append(
 					jen.Id("items"),
-					jen.Id(m.Name).DictFunc(generateModelResolvers(m, "includes")),
+					jen.Id(m.Name).DictFunc(generateModelResolvers(m, "its", "includes")),
+				),
+			),
+		),
+
+		jen.For(jen.List(jen.Id("_"), jen.Id("entry")).Op(":=").Range().Id("its")).Block(
+			jen.Var().Id("included").Op("=").Lit(false),
+			jen.Var().Id("item").Id(fmt.Sprintf("%sItem", m.DowncasedName())),
+			jen.For(jen.List(jen.Id("_"), jen.Id("entryID")).Op(":=").Range().Id("ids")).Block(
+				jen.Id("included").Op("=").Id("included").Op("||").Id("entryID.Sys.ID").Op("==").Id("entry.Sys.ID"),
+			),
+			jen.If(jen.Id("included").Op("==").Lit(true)).Block(
+				jen.If(
+					jen.Err().Op(":=").Qual("encoding/json", "Unmarshal").Call(
+						jen.Op("*").Id("entry.Fields"),
+						jen.Op("&").Id("item.Fields"),
+					),
+					jen.Err().Op("!=").Nil(),
+				).Block(
+					jen.Return(jen.Id("items")),
+				),
+				jen.Id("items").Op("=").Append(
+					jen.Id("items"),
+					jen.Id(m.Name).DictFunc(generateModelResolvers(m, "its", "includes")),
 				),
 			),
 		),
