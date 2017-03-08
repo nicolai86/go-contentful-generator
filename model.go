@@ -70,7 +70,6 @@ func generateModelResolvers(model contentfulModel, includes string) func(map[jen
 					var linkedTypes = linkedContentTypes(field.Items.Validations)
 
 					// single type referenced, convert to typed array
-					// FIXME recursive types
 					if len(linkedTypes) == 1 {
 						targetName := linkedTypes[0]
 						if targetName == model.Name {
