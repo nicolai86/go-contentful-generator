@@ -13,6 +13,10 @@ import (
 	"github.com/davelondon/jennifer/jen"
 )
 
+type validation struct {
+	LinkContentType []string `json:"linkContentType"`
+}
+
 type field struct {
 	Name      string `json:"id"`
 	Type      string `json:"type"`
@@ -21,15 +25,11 @@ type field struct {
 	Required  bool   `json:"required"`
 	Disabled  bool   `json:"disabled"`
 	Items     struct {
-		Type        string `json:"type"`
-		LinkType    string `json:"linkType"`
-		Validations []struct {
-			LinkContentType []string `json:"linkContentType"`
-		} `json:"validations"`
+		Type        string       `json:"type"`
+		LinkType    string       `json:"linkType"`
+		Validations []validation `json:"validations"`
 	}
-	Validations []struct {
-		LinkContentType []string `json:"linkContentType"`
-	} `json:"validations"`
+	Validations []validation `json:"validations"`
 }
 
 type contentfulModel struct {

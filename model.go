@@ -8,9 +8,22 @@ import (
 	"github.com/gedex/inflector"
 )
 
+func linkedContentTypes(vs []validation) []string {
+	var linkedTypes = []string{}
+	for _, v := range vs {
+		for _, linked := range v.LinkContentType {
+			for _, model := range models {
+				if model.Sys.ID == linked {
+					linkedTypes = append(linkedTypes, model.Name)
+				}
+			}
+		}
+	}
+	return linkedTypes
+}
+
 func generateModelResolvers(model contentfulModel, includes string) func(map[jen.Code]jen.Code) {
 	return func(m map[jen.Code]jen.Code) {
-
 		m[jen.Id("ID")] = jen.Id("item.Sys.ID")
 
 		for _, field := range model.Fields {
@@ -26,16 +39,7 @@ func generateModelResolvers(model contentfulModel, includes string) func(map[jen
 						jen.Id(includes),
 					)
 				case "Entry":
-					var linkedTypes []string
-					for _, validation := range field.Validations {
-						for _, linked := range validation.LinkContentType {
-							for _, model := range models {
-								if model.Sys.ID == linked {
-									linkedTypes = append(linkedTypes, model.Name)
-								}
-							}
-						}
-					}
+					var linkedTypes = linkedContentTypes(field.Validations)
 
 					// single type referenced, convert to typed array
 					if len(linkedTypes) == 1 {
@@ -63,16 +67,7 @@ func generateModelResolvers(model contentfulModel, includes string) func(map[jen
 				case "Symbol", "Text":
 					m[jen.Id(fieldName)] = jen.Sel(jen.Id("item"), jen.Id("Fields"), jen.Id(fieldName))
 				case "Link":
-					var linkedTypes []string
-					for _, validation := range field.Items.Validations {
-						for _, linked := range validation.LinkContentType {
-							for _, model := range models {
-								if model.Sys.ID == linked {
-									linkedTypes = append(linkedTypes, model.Name)
-								}
-							}
-						}
-					}
+					var linkedTypes = linkedContentTypes(field.Items.Validations)
 
 					// single type referenced, convert to typed array
 					// FIXME recursive types
@@ -132,7 +127,6 @@ func generateModelItemAttributes(m contentfulModel) func(*jen.Group) {
 
 func generateModelAttributes(m contentfulModel) func(*jen.Group) {
 	return func(g *jen.Group) {
-
 		g.Id("ID").String()
 
 		for _, field := range m.Fields {
@@ -153,16 +147,7 @@ func generateModelAttributes(m contentfulModel) func(*jen.Group) {
 				case "Asset":
 					g.Id(fieldName).Id("Asset")
 				case "Entry":
-					var linkedTypes []string
-					for _, validation := range field.Validations {
-						for _, linked := range validation.LinkContentType {
-							for _, model := range models {
-								if model.Sys.ID == linked {
-									linkedTypes = append(linkedTypes, model.Name)
-								}
-							}
-						}
-					}
+					var linkedTypes = linkedContentTypes(field.Validations)
 
 					// single type referenced, convert to typed array
 					if len(linkedTypes) == 1 {
@@ -181,16 +166,7 @@ func generateModelAttributes(m contentfulModel) func(*jen.Group) {
 				case "Symbol", "Text":
 					g.Id(fieldName).Index().String()
 				case "Link":
-					var linkedTypes []string
-					for _, validation := range field.Items.Validations {
-						for _, linked := range validation.LinkContentType {
-							for _, model := range models {
-								if model.Sys.ID == linked {
-									linkedTypes = append(linkedTypes, model.Name)
-								}
-							}
-						}
-					}
+					var linkedTypes = linkedContentTypes(field.Items.Validations)
 
 					// single type referenced, convert to typed array
 					if len(linkedTypes) == 1 {
