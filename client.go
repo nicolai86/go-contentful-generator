@@ -43,6 +43,7 @@ func generateClient(f *jen.File) {
 		jen.Id("ids").Id("entryIDs"),
 		jen.Id("its").Index().Id("includeEntry"),
 		jen.Id("includes").Id("includes"),
+		jen.Id("cache").Id("*iteratorCache"),
 	).Index().Interface().Block(
 		jen.Var().Id("items").Index().Interface(),
 
@@ -54,7 +55,12 @@ func generateClient(f *jen.File) {
 			jen.If(jen.Id("included").Op("==").Lit(true)).BlockFunc(func(g *jen.Group) {
 				for _, m := range models {
 					g.If(jen.Id("entry.Sys.ContentType.Sys.ID").Op("==").Lit(m.Sys.ID)).Block(
-						jen.Id("items").Op("=").Append(jen.Id("items"), jen.Id(fmt.Sprintf("resolve%s", m.CapitalizedName())).Call(jen.Id("entry.Sys.ID"), jen.Id("its"), jen.Id("includes"))),
+						jen.Id("items").Op("=").Append(jen.Id("items"), jen.Id(fmt.Sprintf("resolve%s", m.CapitalizedName())).Call(
+							jen.Id("entry.Sys.ID"),
+							jen.Id("its"),
+							jen.Id("includes"),
+							jen.Id("cache"),
+						)),
 					)
 				}
 			}),
@@ -66,12 +72,18 @@ func generateClient(f *jen.File) {
 		jen.Id("id").Id("entryID"),
 		jen.Id("its").Index().Id("includeEntry"),
 		jen.Id("includes").Id("includes"),
+		jen.Id("cache").Id("*iteratorCache"),
 	).Interface().Block(
 		jen.For(jen.List(jen.Id("_"), jen.Id("entry")).Op(":=").Range().Id("includes.Entries")).Block(
 			jen.If(jen.Id("entry.Sys.ID").Op("==").Id("id.Sys.ID")).BlockFunc(func(g *jen.Group) {
 				for _, m := range models {
 					g.If(jen.Id("entry.Sys.ContentType.Sys.ID").Op("==").Lit(m.Sys.ID)).Block(
-						jen.Return(jen.Id(fmt.Sprintf("resolve%s", m.CapitalizedName())).Call(jen.Id("entry.Sys.ID"), jen.Id("its"), jen.Id("includes"))),
+						jen.Return(jen.Id(fmt.Sprintf("resolve%s", m.CapitalizedName())).Call(
+							jen.Id("entry.Sys.ID"),
+							jen.Id("its"),
+							jen.Id("includes"),
+							jen.Id("cache"),
+						)),
 					)
 				}
 			}),

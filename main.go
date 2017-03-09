@@ -94,6 +94,7 @@ func main() {
 	generateDateType(f)
 	generateAssetType(f)
 	generateResponseTypes(f)
+	generateIteratorCacheType(f)
 	for _, model := range models {
 		generateModelType(f, model)
 	}
