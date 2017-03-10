@@ -316,10 +316,13 @@ func generateModelType(f *jen.File, m contentfulModel) {
 		jen.Var().Id("items").Op("=").Make(jen.Index().Op("*").Id(m.Name), jen.Len(jen.Id("data.Items"))),
 		jen.For(jen.List(jen.Id("i"), jen.Id("raw")).Op(":=").Range().Id("data.Items")).Block(
 			jen.Var().Id("item").Id(fmt.Sprintf("%sItem", m.DowncasedName())),
-			jen.Qual("encoding/json", "Unmarshal").Call(
-				jen.Id("*raw.Fields"),
-				jen.Id("&item.Fields"),
-			),
+			jen.If(
+				jen.Id("err").Op(":=").Qual("encoding/json", "Unmarshal").Call(
+					jen.Id("*raw.Fields"),
+					jen.Id("&item.Fields"),
+				),
+				jen.Err().Op("!=").Nil(),
+			).Block(jen.Return(jen.Err())),
 			jen.Id("items").Index(jen.Id("i")).Op("=").Op("&").Id(m.Name).DictFunc(
 				generateModelResolvers(m, "data.Items", "data.Includes", "it.lookupCache", true),
 			),
