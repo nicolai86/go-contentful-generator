@@ -49,6 +49,7 @@ func generateDateType(f *jen.File) {
 	f.Comment("Date defines an ISO 8601 date only time")
 	f.Type().Id("Date").Qual("time", "Time")
 
+	f.Comment("UnmarshalJSON deserializes an iso 8601 short date string")
 	f.Func().Params(
 		jen.Id("d").Op("*").Id("Date"),
 	).Id("UnmarshalJSON").Params(

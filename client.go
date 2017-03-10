@@ -12,7 +12,10 @@ import (
 const ContentfulCDNURL = "cdn.contentful.com"
 
 func generateClient(f *jen.File) {
-	f.Var().Id("IteratorDone").Id("error").Op("=").Qual("fmt", "Errorf").Call(jen.Lit("IteratorDone"))
+	f.Comment("ErrIteratorDone is used to indicate that the iterator has no more data")
+	f.Var().Id("ErrIteratorDone").Op("=").Qual("fmt", "Errorf").Call(jen.Lit("IteratorDone"))
+
+	f.Comment("ListOptions contains pagination configuration for iterators")
 	f.Type().Id("ListOptions").Struct(
 		jen.Id("Page").Int(),
 		jen.Id("Limit").Int(),
@@ -91,7 +94,7 @@ func generateClient(f *jen.File) {
 		jen.Return(jen.Nil()),
 	)
 
-	f.Comment("Client")
+	f.Comment("Client implements a space specific contentful client")
 	f.Type().Id("Client").Struct(
 		jen.Id("host").String(),
 		jen.Id("spaceID").String(),
@@ -101,7 +104,7 @@ func generateClient(f *jen.File) {
 		jen.Id("pool").Op("*").Qual("crypto/x509", "CertPool"),
 	)
 
-	f.Const().Id("ContentfulCDNURL").Op("=").Lit(ContentfulCDNURL)
+	f.Const().Id("contentfulCDNURL").Op("=").Lit(ContentfulCDNURL)
 	cert, err := fetchCerts()
 	if err != nil {
 		log.Fatal(err)
@@ -116,7 +119,7 @@ func generateClient(f *jen.File) {
 		jen.Id("pool").Op(":=").Qual("crypto/x509", "NewCertPool").Call(),
 		jen.Sel(jen.Id("pool"), jen.Id("AppendCertsFromPEM")).Call(jen.Index().Byte().Parens(jen.Lit(cert))),
 		jen.Return(jen.Op("&").Id("Client").Dict(map[jen.Code]jen.Code{
-			jen.Id("host"):      jen.Qual("fmt", "Sprintf").Params(jen.Lit("https://%s"), jen.Id("ContentfulCDNURL")),
+			jen.Id("host"):      jen.Qual("fmt", "Sprintf").Params(jen.Lit("https://%s"), jen.Id("contentfulCDNURL")),
 			jen.Id("spaceID"):   jen.Lit(os.Getenv("CONTENTFUL_SPACE_ID")),
 			jen.Id("authToken"): jen.Id("authToken"),
 			jen.Id("Locales"):   jen.Id("locales"),

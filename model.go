@@ -25,7 +25,7 @@ func linkedContentTypes(vs []validation) []string {
 func generateModelLinkResolver(model contentfulModel, items, includes, cache string) func(map[jen.Code]jen.Code) {
 	return func(m map[jen.Code]jen.Code) {
 		for _, field := range model.Fields {
-			fieldName := strings.ToUpper(field.Name[0:1]) + field.Name[1:]
+			fieldName := fieldName(field)
 			switch field.Type {
 			case "Link":
 				switch field.LinkType {
@@ -113,7 +113,7 @@ func generateModelResolvers(model contentfulModel, items, includes, cache string
 		}
 
 		for _, field := range model.Fields {
-			fieldName := strings.ToUpper(field.Name[0:1]) + field.Name[1:]
+			fieldName := fieldName(field)
 			switch field.Type {
 			case "Symbol", "Text", "Integer", "Number", "Boolean", "Date":
 				m[jen.Id(fieldName)] = jen.Sel(jen.Id("item"), jen.Id("Fields"), jen.Id(fieldName))
@@ -125,7 +125,7 @@ func generateModelResolvers(model contentfulModel, items, includes, cache string
 func generateModelItemAttributes(m contentfulModel) func(*jen.Group) {
 	return func(g *jen.Group) {
 		for _, field := range m.Fields {
-			fieldName := strings.ToUpper(field.Name[0:1]) + field.Name[1:]
+			fieldName := fieldName(field)
 			switch field.Type {
 			case "Symbol", "Text":
 				g.Id(fieldName).String().Tag(map[string]string{"json": field.Name})
@@ -151,12 +151,20 @@ func generateModelItemAttributes(m contentfulModel) func(*jen.Group) {
 	}
 }
 
+func fieldName(f field) string {
+	name := strings.ToUpper(f.Name[0:1]) + f.Name[1:]
+	if strings.HasSuffix(name, "Id") {
+		name = name[0:len(name)-2] + "ID"
+	}
+	return name
+}
+
 func generateModelAttributes(m contentfulModel) func(*jen.Group) {
 	return func(g *jen.Group) {
 		g.Id("ID").String()
 
 		for _, field := range m.Fields {
-			fieldName := strings.ToUpper(field.Name[0:1]) + field.Name[1:]
+			fieldName := fieldName(field)
 			switch field.Type {
 			case "Symbol", "Text":
 				g.Id(fieldName).String()
@@ -250,7 +258,7 @@ func generateModelType(f *jen.File, m contentfulModel) {
 			),
 		),
 		jen.If(jen.Len(jen.Id("it.items")).Op("==").Lit(0)).Block(
-			jen.Return(jen.Nil(), jen.Id("IteratorDone")),
+			jen.Return(jen.Nil(), jen.Id("ErrIteratorDone")),
 		),
 		jen.Var().Id("item").Op("*").Id(m.Name),
 		jen.List(
@@ -331,7 +339,11 @@ func generateModelType(f *jen.File, m contentfulModel) {
 		jen.Return(jen.Nil()),
 	)
 
-	f.Commentf("%s %s", m.Name, m.Description)
+	description := m.Description
+	if len(strings.TrimSpace(m.Description)) == 0 {
+		description = "has no description in contentful"
+	}
+	f.Commentf("%s %s", m.Name, description)
 	f.Type().Id(m.Name).StructFunc(generateModelAttributes(m))
 
 	f.Commentf("%sItem contains a single contentful %s model", m.DowncasedName(), m.Name)
