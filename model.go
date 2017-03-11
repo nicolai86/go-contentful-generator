@@ -22,16 +22,16 @@ func linkedContentTypes(vs []validation) []string {
 	return linkedTypes
 }
 
-func generateModelLinkResolver(model contentfulModel, items, includes, cache string) func(map[jen.Code]jen.Code) {
-	return func(m map[jen.Code]jen.Code) {
+func generateModelLinkResolver(model contentfulModel, items, includes, cache string) func(jen.Dict) {
+	return func(d jen.Dict) {
 		for _, field := range model.Fields {
 			fieldName := strings.ToUpper(field.Name[0:1]) + field.Name[1:]
 			switch field.Type {
 			case "Link":
 				switch field.LinkType {
 				case "Asset":
-					m[jen.Id(fieldName)] = jen.Id("resolveAsset").Call(
-						jen.Sel(jen.Id("item"), jen.Id("Fields"), jen.Id(fieldName), jen.Id("Sys"), jen.Id("ID")),
+					d[jen.Id(fieldName)] = jen.Id("resolveAsset").Call(
+						jen.Id("item").Dot("Fields").Dot(fieldName).Dot("Sys").Dot("ID"),
 						jen.Id(includes),
 					)
 				case "Entry":
@@ -40,16 +40,16 @@ func generateModelLinkResolver(model contentfulModel, items, includes, cache str
 					if len(linkedTypes) == 1 {
 						if model.Name == linkedTypes[0] {
 							// 1:1 recursive type relationship
-							m[jen.Id(fieldName)] = jen.Id(fmt.Sprintf("resolve%sPtr", linkedTypes[0])).Call(
-								jen.Sel(jen.Id("item"), jen.Id("Fields"), jen.Id(fieldName), jen.Id("Sys"), jen.Id("ID")),
+							d[jen.Id(fieldName)] = jen.Id(fmt.Sprintf("resolve%sPtr", linkedTypes[0])).Call(
+								jen.Id("item").Dot("Fields").Dot(fieldName).Dot("Sys").Dot("ID"),
 								jen.Id(items),
 								jen.Id(includes),
 								jen.Id(cache),
 							)
 						} else {
 							// 1:1 type relationship
-							m[jen.Id(fieldName)] = jen.Id(fmt.Sprintf("resolve%s", linkedTypes[0])).Call(
-								jen.Sel(jen.Id("item"), jen.Id("Fields"), jen.Id(fieldName), jen.Id("Sys"), jen.Id("ID")),
+							d[jen.Id(fieldName)] = jen.Id(fmt.Sprintf("resolve%s", linkedTypes[0])).Call(
+								jen.Id("item").Dot("Fields").Dot(fieldName).Dot("Sys").Dot("ID"),
 								jen.Id(items),
 								jen.Id(includes),
 								jen.Id(cache),
@@ -57,8 +57,8 @@ func generateModelLinkResolver(model contentfulModel, items, includes, cache str
 						}
 					} else {
 						// 1:1 multi-type relationship
-						m[jen.Id(fieldName)] = jen.Id("resolveEntry").Call(
-							jen.Sel(jen.Id("item"), jen.Id("Fields"), jen.Id(fieldName)),
+						d[jen.Id(fieldName)] = jen.Id("resolveEntry").Call(
+							jen.Id("item").Dot("Fields").Dot(fieldName),
 							jen.Id(items),
 							jen.Id(includes),
 							jen.Id(cache),
@@ -74,16 +74,16 @@ func generateModelLinkResolver(model contentfulModel, items, includes, cache str
 					if len(linkedTypes) == 1 {
 						if linkedTypes[0] == model.Name {
 							// 1:N recursive type relationship
-							m[jen.Id(fieldName)] = jen.Id(fmt.Sprintf("resolve%ssPtr", linkedTypes[0])).Call(
-								jen.Sel(jen.Id("item"), jen.Id("Fields"), jen.Id(fieldName)),
+							d[jen.Id(fieldName)] = jen.Id(fmt.Sprintf("resolve%ssPtr", linkedTypes[0])).Call(
+								jen.Id("item").Dot("Fields").Dot(fieldName),
 								jen.Id(items),
 								jen.Id(includes),
 								jen.Id(cache),
 							)
 						} else {
 							// 1:N type relationship
-							m[jen.Id(fieldName)] = jen.Id(fmt.Sprintf("resolve%ss", linkedTypes[0])).Call(
-								jen.Sel(jen.Id("item"), jen.Id("Fields"), jen.Id(fieldName)),
+							d[jen.Id(fieldName)] = jen.Id(fmt.Sprintf("resolve%ss", linkedTypes[0])).Call(
+								jen.Id("item").Dot("Fields").Dot(fieldName),
 								jen.Id(items),
 								jen.Id(includes),
 								jen.Id(cache),
@@ -91,8 +91,8 @@ func generateModelLinkResolver(model contentfulModel, items, includes, cache str
 						}
 					} else {
 						// 1:N multi-type relationship
-						m[jen.Id(fieldName)] = jen.Id("resolveEntries").Call(
-							jen.Sel(jen.Id("item"), jen.Id("Fields"), jen.Id(fieldName)),
+						d[jen.Id(fieldName)] = jen.Id("resolveEntries").Call(
+							jen.Id("item").Dot("Fields").Dot(fieldName),
 							jen.Id(items),
 							jen.Id(includes),
 							jen.Id(cache),
@@ -104,22 +104,23 @@ func generateModelLinkResolver(model contentfulModel, items, includes, cache str
 	}
 }
 
-func generateModelResolvers(model contentfulModel, items, includes, cache string, includeResolvers bool) func(map[jen.Code]jen.Code) {
-	return func(m map[jen.Code]jen.Code) {
-		m[jen.Id("ID")] = jen.Id("item.Sys.ID")
+func generateModelResolvers(model contentfulModel, items, includes, cache string, includeResolvers bool) jen.Dict {
+	d := jen.Dict{
+		jen.Id("ID"): jen.Id("item.Sys.ID"),
+	}
 
-		if includeResolvers {
-			generateModelLinkResolver(model, items, includes, cache)(m)
-		}
+	if includeResolvers {
+		generateModelLinkResolver(model, items, includes, cache)(d)
+	}
 
-		for _, field := range model.Fields {
-			fieldName := strings.ToUpper(field.Name[0:1]) + field.Name[1:]
-			switch field.Type {
-			case "Symbol", "Text", "Integer", "Number", "Boolean", "Date":
-				m[jen.Id(fieldName)] = jen.Sel(jen.Id("item"), jen.Id("Fields"), jen.Id(fieldName))
-			}
+	for _, field := range model.Fields {
+		fieldName := strings.ToUpper(field.Name[0:1]) + field.Name[1:]
+		switch field.Type {
+		case "Symbol", "Text", "Integer", "Number", "Boolean", "Date":
+			d[jen.Id(fieldName)] = jen.Id("item").Dot("Fields").Dot(fieldName)
 		}
 	}
+	return d
 }
 
 func generateModelItemAttributes(m contentfulModel) func(*jen.Group) {
@@ -286,7 +287,7 @@ func generateModelType(f *jen.File, m contentfulModel) {
 		jen.If(jen.Err().Op("!=").Nil()).Block(
 			jen.Return(jen.Err()),
 		),
-		jen.If(jen.Sel(jen.Id("resp"), jen.Id("StatusCode")).Op("!=").Qual("net/http", "StatusOK")).Block(
+		jen.If(jen.Id("resp").Dot("StatusCode").Op("!=").Qual("net/http", "StatusOK")).Block(
 			jen.Return(
 				jen.Qual("fmt", "Errorf").Call(
 					jen.Lit("Request failed: %s, %v"),
@@ -297,18 +298,13 @@ func generateModelType(f *jen.File, m contentfulModel) {
 		),
 		jen.Var().Id("data").Id(fmt.Sprintf("%sResponse", m.DowncasedName())),
 		jen.If(
-			jen.Err().Op(":=").Sel(
-				jen.Qual("encoding/json", "NewDecoder").Call(jen.Id("resp.Body")),
-				jen.Id("Decode").Call(jen.Op("&").Id("data")),
-			),
+			jen.Err().Op(":=").Qual("encoding/json", "NewDecoder").Call(
+				jen.Id("resp.Body"),
+			).Dot("Decode").Call(jen.Op("&").Id("data")),
 			jen.Err().Op("!=").Nil(),
 		).Block(jen.Return(jen.Err())),
 		jen.If(
-			jen.Err().Op(":=").Sel(
-				jen.Id("resp"),
-				jen.Id("Body"),
-				jen.Id("Close").Call(),
-			),
+			jen.Err().Op(":=").Id("resp").Dot("Body").Dot("Close").Call(),
 			jen.Err().Op("!=").Nil(),
 		).Block(
 			jen.Return(jen.Err()),
@@ -323,7 +319,7 @@ func generateModelType(f *jen.File, m contentfulModel) {
 				),
 				jen.Err().Op("!=").Nil(),
 			).Block(jen.Return(jen.Err())),
-			jen.Id("items").Index(jen.Id("i")).Op("=").Op("&").Id(m.Name).DictFunc(
+			jen.Id("items").Index(jen.Id("i")).Op("=").Op("&").Id(m.Name).Values(
 				generateModelResolvers(m, "data.Items", "data.Includes", "it.lookupCache", true),
 			),
 		),
@@ -350,17 +346,17 @@ func generateModelType(f *jen.File, m contentfulModel) {
 	)
 
 	var codes = []jen.Code{}
-	var attrs = map[jen.Code]jen.Code{}
+	var attrs = jen.Dict{}
 	generateModelLinkResolver(m, "items", "includes", "cache")(attrs)
 	for k, v := range attrs {
-		codes = append(codes, jen.Sel(jen.Id("tmp"), jen.Add(k)).Op("=").Add(v).Op(";"))
+		codes = append(codes, jen.Id("tmp").Op(".").Add(k).Op("=").Add(v).Op(";"))
 	}
 
 	var codess = []jen.Code{}
-	var attrss = map[jen.Code]jen.Code{}
+	var attrss = jen.Dict{}
 	generateModelLinkResolver(m, "its", "includes", "cache")(attrss)
 	for k, v := range attrss {
-		codess = append(codess, jen.Sel(jen.Id("tmp"), jen.Add(k)).Op("=").Add(v).Op(";"))
+		codess = append(codess, jen.Id("tmp").Op(".").Add(k).Op("=").Add(v).Op(";"))
 	}
 
 	f.Func().Id(fmt.Sprintf("resolve%s", m.CapitalizedName())).Params(
@@ -385,15 +381,15 @@ func generateModelType(f *jen.File, m contentfulModel) {
 					),
 					jen.Err().Op("!=").Nil(),
 				).Block(
-					jen.Return(jen.Id(m.Name).Dict(nil)),
+					jen.Return(jen.Id(m.Name).Values()),
 				),
-				jen.Var().Id("tmp").Op("=").Op("&").Id(m.Name).DictFunc(generateModelResolvers(m, "items", "includes", "cache", false)),
+				jen.Var().Id("tmp").Op("=").Op("&").Id(m.Name).Values(generateModelResolvers(m, "items", "includes", "cache", false)),
 				jen.Id(fmt.Sprintf("cache.%ss", m.DowncasedName())).Index(jen.Id("entry.Sys.ID")).Op("=").Id("tmp"),
 				jen.Add(codes...),
 				jen.Return(jen.Op("*").Id("tmp")),
 			),
 		),
-		jen.Return(jen.Id(m.Name).Dict(nil)),
+		jen.Return(jen.Id(m.Name).Values()),
 	)
 
 	f.Func().Id(fmt.Sprintf("resolve%sPtr", m.CapitalizedName())).Params(
@@ -465,7 +461,7 @@ func generateModelType(f *jen.File, m contentfulModel) {
 					jen.Return(jen.Id("items")),
 				),
 
-				jen.Var().Id("tmp").Op("=").Op("&").Id(m.Name).DictFunc(generateModelResolvers(m, "its", "includes", "cache", false)),
+				jen.Var().Id("tmp").Op("=").Op("&").Id(m.Name).Values(generateModelResolvers(m, "its", "includes", "cache", false)),
 				jen.Id(fmt.Sprintf("cache.%ss", m.DowncasedName())).Index(jen.Id("entry.Sys.ID")).Op("=").Id("tmp"),
 				jen.Add(codess...),
 				jen.Id("items").Op("=").Append(
@@ -488,16 +484,16 @@ func generateModelType(f *jen.File, m contentfulModel) {
 			jen.Id("opts.Limit").Op("=").Lit(100),
 		),
 
-		jen.Id("it").Op(":=").Op("&").Id(fmt.Sprintf("%sIterator", m.Name)).Dict(map[jen.Code]jen.Code{
+		jen.Id("it").Op(":=").Op("&").Id(fmt.Sprintf("%sIterator", m.Name)).Values(jen.Dict{
 			jen.Id("Page"):         jen.Id("opts.Page"),
 			jen.Id("Limit"):        jen.Id("opts.Limit"),
 			jen.Id("IncludeCount"): jen.Id("opts.IncludeCount"),
 			jen.Id("c"):            jen.Id("c"),
-			jen.Id("lookupCache"): jen.Op("&").Id("iteratorCache").DictFunc(func(c map[jen.Code]jen.Code) {
+			jen.Id("lookupCache"): jen.Op("&").Id("iteratorCache").Values(jen.DictFunc(func(d jen.Dict) {
 				for _, m := range models {
-					c[jen.Id(fmt.Sprintf("%ss", m.DowncasedName()))] = jen.Make(jen.Map(jen.String()).Op("*").Id(m.Name))
+					d[jen.Id(fmt.Sprintf("%ss", m.DowncasedName()))] = jen.Make(jen.Map(jen.String()).Op("*").Id(m.Name))
 				}
-			}),
+			})),
 		}),
 		jen.Return(jen.Id("it")),
 	)
