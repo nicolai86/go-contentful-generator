@@ -28,7 +28,7 @@ func generateClient(f *jen.File) {
 			jen.List(jen.Id("_"), jen.Id("asset")).Op(":=").Range().Id("includes.Assets"),
 		).Block(
 			jen.If(jen.Id("asset.Sys.ID").Op("==").Id("assetID")).Block(
-				jen.Return(jen.Id("Asset").Dict(map[jen.Code]jen.Code{
+				jen.Return(jen.Id("Asset").Values(jen.Dict{
 					jen.Id("URL"):    jen.Qual("fmt", "Sprintf").Call(jen.Lit("https:%s"), jen.Id("asset.Fields.File.URL")),
 					jen.Id("Width"):  jen.Id("asset.Fields.File.Details.Image.Width"),
 					jen.Id("Height"): jen.Id("asset.Fields.File.Details.Image.Height"),
@@ -36,7 +36,7 @@ func generateClient(f *jen.File) {
 				})),
 			),
 		),
-		jen.Return(jen.Id("Asset").Dict(nil)),
+		jen.Return(jen.Id("Asset").Values()),
 	)
 
 	f.Func().Id("resolveEntries").Params(
@@ -114,16 +114,16 @@ func generateClient(f *jen.File) {
 		jen.Id("locales").Index().String(),
 	).Op("*").Id("Client").Block(
 		jen.Id("pool").Op(":=").Qual("crypto/x509", "NewCertPool").Call(),
-		jen.Sel(jen.Id("pool"), jen.Id("AppendCertsFromPEM")).Call(jen.Index().Byte().Parens(jen.Lit(cert))),
-		jen.Return(jen.Op("&").Id("Client").Dict(map[jen.Code]jen.Code{
+		jen.Id("pool").Dot("AppendCertsFromPEM").Call(jen.Index().Byte().Parens(jen.Lit(cert))),
+		jen.Return(jen.Op("&").Id("Client").Values(jen.Dict{
 			jen.Id("host"):      jen.Qual("fmt", "Sprintf").Params(jen.Lit("https://%s"), jen.Id("ContentfulCDNURL")),
 			jen.Id("spaceID"):   jen.Lit(os.Getenv("CONTENTFUL_SPACE_ID")),
 			jen.Id("authToken"): jen.Id("authToken"),
 			jen.Id("Locales"):   jen.Id("locales"),
 			jen.Id("pool"):      jen.Id("pool"),
-			jen.Id("client"): jen.Op("&").Qual("net/http", "Client").Dict(map[jen.Code]jen.Code{
-				jen.Id("Transport"): jen.Op("&").Qual("net/http", "Transport").Dict(map[jen.Code]jen.Code{
-					jen.Id("TLSClientConfig"): jen.Op("&").Qual("crypto/tls", "Config").Dict(map[jen.Code]jen.Code{
+			jen.Id("client"): jen.Op("&").Qual("net/http", "Client").Values(jen.Dict{
+				jen.Id("Transport"): jen.Op("&").Qual("net/http", "Transport").Values(jen.Dict{
+					jen.Id("TLSClientConfig"): jen.Op("&").Qual("crypto/tls", "Config").Values(jen.Dict{
 						jen.Id("RootCAs"): jen.Id("pool"),
 					}),
 				}),
