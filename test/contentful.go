@@ -210,11 +210,11 @@ func resolvePost(entryID string, items []includeEntry, includes includes, cache 
 				Title:    item.Fields.Title,
 			}
 			cache.posts[entry.Sys.ID] = tmp
-			tmp.Author = resolveAuthors(item.Fields.Author, items, includes, cache)
-			tmp.Category = resolveCategorys(item.Fields.Category, items, includes, cache)
 			tmp.FeaturedImage = resolveAsset(item.Fields.FeaturedImage.Sys.ID, includes)
 			tmp.Approver = resolveAuthor(item.Fields.Approver.Sys.ID, items, includes, cache)
 			tmp.AuthorOrPost = resolveEntries(item.Fields.AuthorOrPost, items, includes, cache)
+			tmp.Author = resolveAuthors(item.Fields.Author, items, includes, cache)
+			tmp.Category = resolveCategorys(item.Fields.Category, items, includes, cache)
 			return *tmp
 		}
 	}
@@ -409,8 +409,8 @@ func resolveAuthor(entryID string, items []includeEntry, includes includes, cach
 				Website:   item.Fields.Website,
 			}
 			cache.authors[entry.Sys.ID] = tmp
-			tmp.ProfilePhoto = resolveAsset(item.Fields.ProfilePhoto.Sys.ID, includes)
 			tmp.CreatedEntries = resolvePosts(item.Fields.CreatedEntries, items, includes, cache)
+			tmp.ProfilePhoto = resolveAsset(item.Fields.ProfilePhoto.Sys.ID, includes)
 			return *tmp
 		}
 	}
@@ -904,6 +904,9 @@ func (ws *WebhookService) Create(w *Webhook) error {
 	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
 		return err
 	}
+	if err := resp.Body.Close(); err != nil {
+		return err
+	}
 	w.ID = payload.Sys.ID
 	w.Version = payload.Sys.Version
 	return nil
@@ -934,6 +937,9 @@ func (ws *WebhookService) Update(w *Webhook) error {
 	if json.NewDecoder(resp.Body).Decode(&payload); err != nil {
 		return err
 	}
+	if err := resp.Body.Close(); err != nil {
+		return err
+	}
 	*w = payload.Webhook
 	return nil
 }
@@ -954,7 +960,7 @@ func (ws *WebhookService) Delete(id string) error {
 	if resp.StatusCode != http.StatusNoContent {
 		return fmt.Errorf("Request failed: %s, %v", resp.Status, err)
 	}
-	return nil
+	return resp.Body.Close()
 }
 
 // WebhookService includes webhook management functions

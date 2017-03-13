@@ -230,6 +230,12 @@ func generateManagementClient(f *jen.File) {
 			jen.Err().Op(":=").Qual("encoding/json", "NewDecoder").Call(jen.Id("resp.Body")).Dot("Decode").Call(jen.Id("&payload")),
 			jen.Err().Op("!=").Nil(),
 		).Block(jen.Return(jen.Err())),
+		jen.If(
+			jen.Err().Op(":=").Id("resp").Dot("Body").Dot("Close").Call(),
+			jen.Err().Op("!=").Nil(),
+		).Block(
+			jen.Return(jen.Err()),
+		),
 		jen.Id("w.ID").Op("=").Id("payload.Sys.ID"),
 		jen.Id("w.Version").Op("=").Id("payload.Sys.Version"),
 		jen.Return(jen.Nil()),
@@ -291,6 +297,12 @@ func generateManagementClient(f *jen.File) {
 			jen.Qual("encoding/json", "NewDecoder").Call(jen.Id("resp.Body")).Dot("Decode").Call(jen.Id("&payload")),
 			jen.Err().Op("!=").Nil(),
 		).Block(jen.Return(jen.Err())),
+		jen.If(
+			jen.Err().Op(":=").Id("resp").Dot("Body").Dot("Close").Call(),
+			jen.Err().Op("!=").Nil(),
+		).Block(
+			jen.Return(jen.Err()),
+		),
 		jen.Id("*w").Op("=").Id("payload.Webhook"),
 		jen.Return(jen.Nil()),
 	)
@@ -333,7 +345,7 @@ func generateManagementClient(f *jen.File) {
 				),
 			),
 		),
-		jen.Return(jen.Nil()),
+		jen.Return(jen.Id("resp").Dot("Body").Dot("Close").Call()),
 	)
 
 	f.Comment("WebhookService includes webhook management functions")
