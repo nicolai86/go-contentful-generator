@@ -60,7 +60,7 @@ func generateDateType(f *jen.File) {
 			jen.Lit("\""),
 		),
 		jen.If(jen.Id("s").Op("==").Lit("null")).Block(
-			jen.Op("*").Id("d").Op("=").Id("Date").Call(jen.Qual("time", "Time").Dict(nil)),
+			jen.Op("*").Id("d").Op("=").Id("Date").Call(jen.Qual("time", "Time").Values()),
 		),
 		jen.List(jen.Id("t"), jen.Err().Op(":=").Qual("time", "Parse").Call(jen.Id("dateLayout"), jen.Id("s"))),
 		jen.Op("*").Id("d").Op("=").Id("Date").Call(jen.Id("t")),
