@@ -434,8 +434,8 @@ func generateModelType(f *jen.File, m contentfulModel) {
 			jen.Id("cache"),
 		),
 		jen.Var().Id("ptrs").Index().Op("*").Id(m.Name),
-		jen.For(jen.List(jen.Id("_"), jen.Id("entry")).Op(":=").Range().Id("items")).Block(
-			jen.Id("ptrs").Op("=").Append(jen.Id("ptrs"), jen.Op("&").Id("entry")),
+		jen.For(jen.Id("i").Op(":=").Range().Id("items")).Block(
+			jen.Id("ptrs").Op("=").Append(jen.Id("ptrs"), jen.Op("&").Id("items").Index(jen.Id("i"))),
 		),
 		jen.Return(jen.Id("ptrs")),
 	)
@@ -453,35 +453,37 @@ func generateModelType(f *jen.File, m contentfulModel) {
 			jen.For(jen.List(jen.Id("_"), jen.Id("entryID")).Op(":=").Range().Id("ids")).Block(
 				jen.Id("included").Op("=").Id("included").Op("||").Id("entryID.Sys.ID").Op("==").Id("entry.Sys.ID"),
 			),
-			jen.If(jen.Id("included").Op("==").Lit(true)).Block(
-				jen.If(
-					jen.Id("v, ok").Op(":=").Id(fmt.Sprintf("cache.%ss", m.DowncasedName())).Index(jen.Id("entry.Sys.ID")),
-					jen.Id("ok"),
-				).Block(
-					jen.Id("items").Op("=").Append(
-						jen.Id("items"),
-						jen.Op("*").Id("v"),
-					),
-					jen.Continue(),
-				),
-
-				jen.If(
-					jen.Err().Op(":=").Qual("encoding/json", "Unmarshal").Call(
-						jen.Op("*").Id("entry.Fields"),
-						jen.Op("&").Id("item.Fields"),
-					),
-					jen.Err().Op("!=").Nil(),
-				).Block(
-					jen.Return(jen.Id("items")),
-				),
-
-				jen.Var().Id("tmp").Op("=").Op("&").Id(m.Name).Values(generateModelResolvers(m, "its", "includes", "cache", false)),
-				jen.Id(fmt.Sprintf("cache.%ss", m.DowncasedName())).Index(jen.Id("entry.Sys.ID")).Op("=").Id("tmp"),
-				jen.Add(codess...),
+			jen.If(jen.Id("included").Op("!=").Lit(true)).Block(
+				jen.Continue(),
+			),
+			jen.If(
+				jen.Id("v, ok").Op(":=").Id(fmt.Sprintf("cache.%ss", m.DowncasedName())).Index(jen.Id("entry.Sys.ID")),
+				jen.Id("ok"),
+			).Block(
 				jen.Id("items").Op("=").Append(
 					jen.Id("items"),
-					jen.Id("*tmp"),
+					jen.Op("*").Id("v"),
 				),
+				jen.Continue(),
+			),
+
+			jen.If(
+				jen.Err().Op(":=").Qual("encoding/json", "Unmarshal").Call(
+					jen.Op("*").Id("entry.Fields"),
+					jen.Op("&").Id("item.Fields"),
+				),
+				jen.Err().Op("!=").Nil(),
+			).Block(
+				jen.Return(jen.Id("items")),
+			),
+
+			jen.Var().Id("tmp").Op("=").Op("&").Id(m.Name).Values(generateModelResolvers(m, "its", "includes", "cache", false)),
+			jen.Id(fmt.Sprintf("cache.%ss", m.DowncasedName())).Index(jen.Id("entry.Sys.ID")).Op("=").Id("tmp"),
+			jen.Add(codess...),
+			jen.Id("tmp.ID").Op("=").Id("entry.Sys.ID"),
+			jen.Id("items").Op("=").Append(
+				jen.Id("items"),
+				jen.Id("*tmp"),
 			),
 		),
 		jen.Return(jen.Id("items")),
