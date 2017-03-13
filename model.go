@@ -494,7 +494,6 @@ func generateModelType(f *jen.File, m contentfulModel) {
 			),
 			jen.Id(fmt.Sprintf("cache.%ss", m.DowncasedName())).Index(jen.Id("entry.Sys.ID")).Op("=").Id("tmp"),
 			jen.Add(codess...),
-			jen.Id("tmp.ID").Op("=").Id("entry.Sys.ID"),
 			jen.Id("items").Op("=").Append(
 				jen.Id("items"),
 				jen.Id("*tmp"),

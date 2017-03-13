@@ -259,12 +259,11 @@ func resolvePosts(ids entryIDs, its []includeEntry, includes includes, cache *it
 			Title:    item.Fields.Title,
 		}
 		cache.posts[entry.Sys.ID] = tmp
-		tmp.Approver = resolveAuthor(item.Fields.Approver.Sys.ID, its, includes, cache)
-		tmp.AuthorOrPost = resolveEntries(item.Fields.AuthorOrPost, its, includes, cache)
 		tmp.Author = resolveAuthors(item.Fields.Author, its, includes, cache)
 		tmp.Category = resolveCategorys(item.Fields.Category, its, includes, cache)
 		tmp.FeaturedImage = resolveAsset(item.Fields.FeaturedImage.Sys.ID, includes)
-		tmp.ID = entry.Sys.ID
+		tmp.Approver = resolveAuthor(item.Fields.Approver.Sys.ID, its, includes, cache)
+		tmp.AuthorOrPost = resolveEntries(item.Fields.AuthorOrPost, its, includes, cache)
 		items = append(items, *tmp)
 	}
 	return items
@@ -458,7 +457,6 @@ func resolveAuthors(ids entryIDs, its []includeEntry, includes includes, cache *
 		cache.authors[entry.Sys.ID] = tmp
 		tmp.ProfilePhoto = resolveAsset(item.Fields.ProfilePhoto.Sys.ID, includes)
 		tmp.CreatedEntries = resolvePosts(item.Fields.CreatedEntries, its, includes, cache)
-		tmp.ID = entry.Sys.ID
 		items = append(items, *tmp)
 	}
 	return items
@@ -637,7 +635,6 @@ func resolveCategorys(ids entryIDs, its []includeEntry, includes includes, cache
 		cache.categorys[entry.Sys.ID] = tmp
 		tmp.Icon = resolveAsset(item.Fields.Icon.Sys.ID, includes)
 		tmp.Parent = resolveCategoryPtr(item.Fields.Parent.Sys.ID, its, includes, cache)
-		tmp.ID = entry.Sys.ID
 		items = append(items, *tmp)
 	}
 	return items
