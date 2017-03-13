@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/davelondon/jennifer/jen"
+	"github.com/dave/jennifer/jen"
 )
 
 // ContentfulCDNURL is the public domain of contentfuls public CDN

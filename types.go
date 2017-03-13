@@ -1,6 +1,6 @@
 package main
 
-import "github.com/davelondon/jennifer/jen"
+import "github.com/dave/jennifer/jen"
 
 func generateResponseTypes(f *jen.File) {
 	f.Type().Id("includes").Struct(

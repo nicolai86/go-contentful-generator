@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/davelondon/jennifer/jen"
+	"github.com/dave/jennifer/jen"
 	"github.com/gedex/inflector"
 )
 
