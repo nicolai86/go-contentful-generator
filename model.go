@@ -105,9 +105,7 @@ func generateModelLinkResolver(model contentfulModel, items, includes, cache str
 }
 
 func generateModelResolvers(model contentfulModel, items, includes, cache string, includeResolvers bool) jen.Dict {
-	d := jen.Dict{
-		jen.Id("ID"): jen.Id("item.Sys.ID"),
-	}
+	d := jen.Dict{}
 
 	if includeResolvers {
 		generateModelLinkResolver(model, items, includes, cache)(d)
@@ -239,7 +237,7 @@ func generateModelType(f *jen.File, m contentfulModel) {
 		jen.Id("Limit").Int(),
 		jen.Id("Offset").Int(),
 		jen.Id("IncludeCount").Int(),
-		jen.Id("c").Op("*").Id("Client"),
+		jen.Id("c").Op("*").Id("ContentClient"),
 		jen.Id("items").Index().Op("*").Id(m.Name),
 		jen.Id("lookupCache").Op("*").Id("iteratorCache"),
 	)
@@ -327,11 +325,14 @@ func generateModelType(f *jen.File, m contentfulModel) {
 				),
 				jen.Err().Op("!=").Nil(),
 			).Block(jen.Return(jen.Err())),
-			jen.Id("r").Op(":=").Id(m.Name).Values(
-				generateModelResolvers(m, "data.Items", "data.Includes", "it.lookupCache", true),
+			jen.Id("items").Index(jen.Id("i")).Op("=").Op("&").Id(m.Name).Values(
+				merge(
+					generateModelResolvers(m, "data.Items", "data.Includes", "it.lookupCache", true),
+					jen.Dict{
+						jen.Id("ID"): jen.Id("raw.Sys.ID"),
+					},
+				),
 			),
-			jen.Id("r.ID").Op("=").Id("raw.Sys.ID"),
-			jen.Id("items").Index(jen.Id("i")).Op("=").Op("&").Id("r"),
 		),
 		jen.Id("it.items").Op("=").Id("items"),
 		jen.Return(jen.Nil()),
@@ -366,13 +367,6 @@ func generateModelType(f *jen.File, m contentfulModel) {
 		codes = append(codes, jen.Id("tmp").Op(".").Add(k).Op("=").Add(v).Op(";"))
 	}
 
-	var codess = []jen.Code{}
-	var attrss = jen.Dict{}
-	generateModelLinkResolver(m, "its", "includes", "cache")(attrss)
-	for k, v := range attrss {
-		codess = append(codess, jen.Id("tmp").Op(".").Add(k).Op("=").Add(v).Op(";"))
-	}
-
 	f.Func().Id(fmt.Sprintf("resolve%s", m.CapitalizedName())).Params(
 		jen.Id("entryID").String(),
 		jen.Id("items").Index().Id("includeEntry"),
@@ -397,7 +391,14 @@ func generateModelType(f *jen.File, m contentfulModel) {
 				).Block(
 					jen.Return(jen.Id(m.Name).Values()),
 				),
-				jen.Var().Id("tmp").Op("=").Op("&").Id(m.Name).Values(generateModelResolvers(m, "items", "includes", "cache", false)),
+				jen.Var().Id("tmp").Op("=").Op("&").Id(m.Name).Values(
+					merge(
+						generateModelResolvers(m, "items", "includes", "cache", false),
+						jen.Dict{
+							jen.Id("ID"): jen.Id("entry.Sys.ID"),
+						},
+					),
+				),
 				jen.Id(fmt.Sprintf("cache.%ss", m.DowncasedName())).Index(jen.Id("entry.Sys.ID")).Op("=").Id("tmp"),
 				jen.Add(codes...),
 				jen.Return(jen.Op("*").Id("tmp")),
@@ -440,6 +441,12 @@ func generateModelType(f *jen.File, m contentfulModel) {
 		jen.Return(jen.Id("ptrs")),
 	)
 
+	var codess = []jen.Code{}
+	var attrss = jen.Dict{}
+	generateModelLinkResolver(m, "its", "includes", "cache")(attrss)
+	for k, v := range attrss {
+		codess = append(codess, jen.Id("tmp").Op(".").Add(k).Op("=").Add(v).Op(";"))
+	}
 	f.Func().Id(fmt.Sprintf("resolve%ss", m.CapitalizedName())).Params(
 		jen.Id("ids").Id("entryIDs"),
 		jen.Id("its").Index().Id("includeEntry"),
@@ -477,7 +484,14 @@ func generateModelType(f *jen.File, m contentfulModel) {
 				jen.Return(jen.Id("items")),
 			),
 
-			jen.Var().Id("tmp").Op("=").Op("&").Id(m.Name).Values(generateModelResolvers(m, "its", "includes", "cache", false)),
+			jen.Var().Id("tmp").Op("=").Op("&").Id(m.Name).Values(
+				merge(
+					generateModelResolvers(m, "its", "includes", "cache", false),
+					jen.Dict{
+						jen.Id("ID"): jen.Id("entry.Sys.ID"),
+					},
+				),
+			),
 			jen.Id(fmt.Sprintf("cache.%ss", m.DowncasedName())).Index(jen.Id("entry.Sys.ID")).Op("=").Id("tmp"),
 			jen.Add(codess...),
 			jen.Id("tmp.ID").Op("=").Id("entry.Sys.ID"),
@@ -492,7 +506,7 @@ func generateModelType(f *jen.File, m contentfulModel) {
 	resolverName := inflector.Pluralize(m.Name)
 	f.Commentf("%s retrieves paginated %s entries", resolverName, m.Name)
 	f.Func().Params(
-		jen.Id("c").Op("*").Id("Client"),
+		jen.Id("c").Op("*").Id("ContentClient"),
 	).Id(resolverName).Params(
 		jen.Id("opts").Id("ListOptions"),
 	).Op("*").Id(fmt.Sprintf("%sIterator", m.Name)).Block(

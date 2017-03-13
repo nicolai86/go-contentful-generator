@@ -2,26 +2,12 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/dave/jennifer/jen"
 )
 
-// ContentfulCDNURL is the public domain of contentfuls public CDN
-const ContentfulCDNURL = "cdn.contentful.com"
-
-func generateClient(f *jen.File) {
-	f.Comment("ErrIteratorDone is used to indicate that the iterator has no more data")
-	f.Var().Id("ErrIteratorDone").Op("=").Qual("fmt", "Errorf").Call(jen.Lit("IteratorDone"))
-
-	f.Comment("ListOptions contains pagination configuration for iterators")
-	f.Type().Id("ListOptions").Struct(
-		jen.Id("Page").Int(),
-		jen.Id("Limit").Int(),
-		jen.Id("IncludeCount").Int(),
-	)
-
+func generateContentClient(f *jen.File) {
 	// TODO return error if not resolvable
 	f.Func().Id("resolveAsset").Params(
 		jen.Id("assetID").String(),
@@ -94,8 +80,8 @@ func generateClient(f *jen.File) {
 		jen.Return(jen.Nil()),
 	)
 
-	f.Comment("Client implements a space specific contentful client")
-	f.Type().Id("Client").Struct(
+	f.Comment("ContentClient implements a space specific contentful client")
+	f.Type().Id("ContentClient").Struct(
 		jen.Id("host").String(),
 		jen.Id("spaceID").String(),
 		jen.Id("authToken").String(),
@@ -104,22 +90,47 @@ func generateClient(f *jen.File) {
 		jen.Id("pool").Op("*").Qual("crypto/x509", "CertPool"),
 	)
 
-	f.Const().Id("contentfulCDNURL").Op("=").Lit(ContentfulCDNURL)
-	cert, err := fetchCerts()
-	if err != nil {
-		log.Fatal(err)
-	}
+	f.Comment("contentfulCDAURL points to the contentful delivery api endpoint")
+	f.Const().Id("contentfulCDAURL").Op("=").Lit(cdaEndpoint)
 
-	// TODO include cert pool
-	f.Comment("New returns a contentful client")
-	f.Func().Id("New").Params(
+	f.Comment("contentfulCDAURL points to the contentful preview api endpoint")
+	f.Const().Id("contentfulCPAURL").Op("=").Lit(cpaEndpoint)
+
+	f.Comment("contentfulCDAURL points to the contentful management api endpoint")
+	f.Const().Id("contentfulCMAURL").Op("=").Lit(cmaEndpoint)
+
+	f.Comment("NewCDA returns a contentful client interfacing with the content delivery api")
+	f.Func().Id("NewCDA").Params(
 		jen.Id("authToken").String(),
 		jen.Id("locales").Index().String(),
-	).Op("*").Id("Client").Block(
+	).Op("*").Id("ContentClient").Block(
 		jen.Id("pool").Op(":=").Qual("crypto/x509", "NewCertPool").Call(),
-		jen.Id("pool").Dot("AppendCertsFromPEM").Call(jen.Index().Byte().Parens(jen.Lit(cert))),
-		jen.Return(jen.Op("&").Id("Client").Values(jen.Dict{
-			jen.Id("host"):      jen.Qual("fmt", "Sprintf").Params(jen.Lit("https://%s"), jen.Id("contentfulCDNURL")),
+		jen.Id("pool").Dot("AppendCertsFromPEM").Call(jen.Index().Byte().Parens(jen.Lit(certs))),
+		jen.Return(jen.Op("&").Id("ContentClient").Values(jen.Dict{
+			jen.Id("host"):      jen.Qual("fmt", "Sprintf").Params(jen.Lit("https://%s"), jen.Id("contentfulCDAURL")),
+			jen.Id("spaceID"):   jen.Lit(os.Getenv("CONTENTFUL_SPACE_ID")),
+			jen.Id("authToken"): jen.Id("authToken"),
+			jen.Id("Locales"):   jen.Id("locales"),
+			jen.Id("pool"):      jen.Id("pool"),
+			jen.Id("client"): jen.Op("&").Qual("net/http", "Client").Values(jen.Dict{
+				jen.Id("Transport"): jen.Op("&").Qual("net/http", "Transport").Values(jen.Dict{
+					jen.Id("TLSClientConfig"): jen.Op("&").Qual("crypto/tls", "Config").Values(jen.Dict{
+						jen.Id("RootCAs"): jen.Id("pool"),
+					}),
+				}),
+			}),
+		})),
+	)
+
+	f.Comment("NewCPA returns a contentful client interfacing with the content preview api")
+	f.Func().Id("NewCPA").Params(
+		jen.Id("authToken").String(),
+		jen.Id("locales").Index().String(),
+	).Op("*").Id("ContentClient").Block(
+		jen.Id("pool").Op(":=").Qual("crypto/x509", "NewCertPool").Call(),
+		jen.Id("pool").Dot("AppendCertsFromPEM").Call(jen.Index().Byte().Parens(jen.Lit(certs))),
+		jen.Return(jen.Op("&").Id("ContentClient").Values(jen.Dict{
+			jen.Id("host"):      jen.Qual("fmt", "Sprintf").Params(jen.Lit("https://%s"), jen.Id("contentfulCPAURL")),
 			jen.Id("spaceID"):   jen.Lit(os.Getenv("CONTENTFUL_SPACE_ID")),
 			jen.Id("authToken"): jen.Id("authToken"),
 			jen.Id("Locales"):   jen.Id("locales"),

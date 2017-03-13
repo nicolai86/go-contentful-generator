@@ -59,30 +59,39 @@ type contentModelResponse struct {
 
 var (
 	models []contentfulModel
+	certs  string
 )
 
-// content delivery api endpoint
-const cdaEndpoint = "https://cdn.contentful.com"
-const cmaEndpoint = "https://api.contentful.com"
 // contentful api endpoints
 const cdaEndpoint = "cdn.contentful.com"
 const cmaEndpoint = "api.contentful.com"
 const cpaEndpoint = "preview.contentful.com"
 
 func init() {
-	var url = fmt.Sprintf("%s/spaces/%s/content_types?access_token=%s", cmaEndpoint, os.Getenv("CONTENTFUL_SPACE_ID"), os.Getenv("CONTENTFUL_AUTH_TOKEN"))
+	var url = fmt.Sprintf("https://%s/spaces/%s/content_types?access_token=%s", cmaEndpoint, os.Getenv("CONTENTFUL_SPACE_ID"), os.Getenv("CONTENTFUL_AUTH_TOKEN"))
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	var data contentModelResponse
 	bs, _ := ioutil.ReadAll(resp.Body)
-	json.Unmarshal(bs, &data)
-	resp.Body.Close()
+	if err := json.Unmarshal(bs, &data); err != nil {
+		log.Fatal(err.Error())
+	}
+	if err := resp.Body.Close(); err != nil {
+		log.Fatal(err.Error())
+	}
+
 	models = data.Items
 
 	for i := range models {
 		models[i].Name = strings.Replace(models[i].Name, " ", "", -1)
+	}
+
+	certs, err = fetchCerts()
+	if err != nil {
+		log.Fatal(err)
 	}
 }
 
@@ -103,7 +112,9 @@ func main() {
 		generateModelType(f, model)
 	}
 
-	generateClient(f)
+	generateIteratorUtils(f)
+	generateContentClient(f)
+	generateManagementClient(f)
 
 	file, err := os.OpenFile(output, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0755)
 	if err != nil {
