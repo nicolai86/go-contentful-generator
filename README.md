@@ -2,6 +2,14 @@
 
 generate a complete contentful SDK client from your existing schema
 
+## Features
+
+- [x] generates typed contentful content delivery api SDK
+- [x] generates typed contentful content preview api SDK
+- [x] generates typed contentful content management api SDK
+- [x] supports recursive type definitions
+- [x] supports assets
+
 ## Installation
 
 ```
