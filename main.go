@@ -64,6 +64,10 @@ var (
 // content delivery api endpoint
 const cdaEndpoint = "https://cdn.contentful.com"
 const cmaEndpoint = "https://api.contentful.com"
+// contentful api endpoints
+const cdaEndpoint = "cdn.contentful.com"
+const cmaEndpoint = "api.contentful.com"
+const cpaEndpoint = "preview.contentful.com"
 
 func init() {
 	var url = fmt.Sprintf("%s/spaces/%s/content_types?access_token=%s", cmaEndpoint, os.Getenv("CONTENTFUL_SPACE_ID"), os.Getenv("CONTENTFUL_AUTH_TOKEN"))
