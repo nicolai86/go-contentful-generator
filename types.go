@@ -11,6 +11,7 @@ func generateResponseTypes(f *jen.File) {
 	f.Type().Id("sys").Struct(
 		jen.Id("ID").String().Tag(map[string]string{"json": "id"}),
 		jen.Id("Type").String().Tag(map[string]string{"json": "type"}),
+		jen.Id("Version").Int().Tag(map[string]string{"json": "version"}),
 		jen.Id("ContentType").Struct(
 			jen.Id("Sys").Struct(
 				jen.Id("ID").String().Tag(map[string]string{"json": "id"}),
