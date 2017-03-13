@@ -38,4 +38,5 @@ Or, you can use a go-generate flag like this:
 ## TODO
 
 - [ ] multi-language schema
+- [ ] content-type management
 - [ ] tests
