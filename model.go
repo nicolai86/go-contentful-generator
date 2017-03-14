@@ -285,7 +285,7 @@ func generateModelType(f *jen.File, m contentfulModel) {
 			jen.Id("c.authToken"),
 			jen.Lit(m.Sys.ID),
 			jen.Id("it.IncludeCount"),
-			jen.Id("c.Locales").Index(jen.Lit(0)),
+			jen.Id("c.Locale"),
 			jen.Id("it.Limit"),
 			jen.Id("it.Offset"),
 		),

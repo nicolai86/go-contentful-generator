@@ -8,7 +8,6 @@ import (
 )
 
 func generateContentClient(f *jen.File) {
-	// TODO return error if not resolvable
 	f.Func().Id("resolveAsset").Params(
 		jen.Id("assetID").String(),
 		jen.Id("includes").Id("includes"),
@@ -85,7 +84,7 @@ func generateContentClient(f *jen.File) {
 		jen.Id("host").String(),
 		jen.Id("spaceID").String(),
 		jen.Id("authToken").String(),
-		jen.Id("Locales").Index().String(),
+		jen.Id("Locale").String(),
 		jen.Id("client").Op("*").Qual("net/http", "Client"),
 		jen.Id("pool").Op("*").Qual("crypto/x509", "CertPool"),
 	)
@@ -102,7 +101,7 @@ func generateContentClient(f *jen.File) {
 	f.Comment("NewCDA returns a contentful client interfacing with the content delivery api")
 	f.Func().Id("NewCDA").Params(
 		jen.Id("authToken").String(),
-		jen.Id("locales").Index().String(),
+		jen.Id("locale").String(),
 	).Op("*").Id("ContentClient").Block(
 		jen.Id("pool").Op(":=").Qual("crypto/x509", "NewCertPool").Call(),
 		jen.Id("pool").Dot("AppendCertsFromPEM").Call(jen.Index().Byte().Parens(jen.Lit(certs))),
@@ -110,7 +109,7 @@ func generateContentClient(f *jen.File) {
 			jen.Id("host"):      jen.Qual("fmt", "Sprintf").Params(jen.Lit("https://%s"), jen.Id("contentfulCDAURL")),
 			jen.Id("spaceID"):   jen.Lit(os.Getenv("CONTENTFUL_SPACE_ID")),
 			jen.Id("authToken"): jen.Id("authToken"),
-			jen.Id("Locales"):   jen.Id("locales"),
+			jen.Id("Locale"):    jen.Id("locale"),
 			jen.Id("pool"):      jen.Id("pool"),
 			jen.Id("client"): jen.Op("&").Qual("net/http", "Client").Values(jen.Dict{
 				jen.Id("Transport"): jen.Op("&").Qual("net/http", "Transport").Values(jen.Dict{
@@ -125,7 +124,7 @@ func generateContentClient(f *jen.File) {
 	f.Comment("NewCPA returns a contentful client interfacing with the content preview api")
 	f.Func().Id("NewCPA").Params(
 		jen.Id("authToken").String(),
-		jen.Id("locales").Index().String(),
+		jen.Id("locale").String(),
 	).Op("*").Id("ContentClient").Block(
 		jen.Id("pool").Op(":=").Qual("crypto/x509", "NewCertPool").Call(),
 		jen.Id("pool").Dot("AppendCertsFromPEM").Call(jen.Index().Byte().Parens(jen.Lit(certs))),
@@ -133,7 +132,7 @@ func generateContentClient(f *jen.File) {
 			jen.Id("host"):      jen.Qual("fmt", "Sprintf").Params(jen.Lit("https://%s"), jen.Id("contentfulCPAURL")),
 			jen.Id("spaceID"):   jen.Lit(os.Getenv("CONTENTFUL_SPACE_ID")),
 			jen.Id("authToken"): jen.Id("authToken"),
-			jen.Id("Locales"):   jen.Id("locales"),
+			jen.Id("Locale"):    jen.Id("locale"),
 			jen.Id("pool"):      jen.Id("pool"),
 			jen.Id("client"): jen.Op("&").Qual("net/http", "Client").Values(jen.Dict{
 				jen.Id("Transport"): jen.Op("&").Qual("net/http", "Transport").Values(jen.Dict{

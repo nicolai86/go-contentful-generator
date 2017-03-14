@@ -46,7 +46,7 @@ func main() {
 	}
 
 	{
-		c := NewCDA(os.Getenv("CONTENTFUL_CDA_AUTH_TOKEN"), []string{"en-US"})
+		c := NewCDA(os.Getenv("CONTENTFUL_CDA_AUTH_TOKEN"), "en-US")
 		it := c.Posts(ListOptions{Limit: 1, IncludeCount: 1})
 		fmt.Printf("Posts:\n")
 		for {
