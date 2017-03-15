@@ -294,7 +294,7 @@ func generateManagementClient(f *jen.File) {
 			),
 		),
 		jen.If(
-			jen.Qual("encoding/json", "NewDecoder").Call(jen.Id("resp.Body")).Dot("Decode").Call(jen.Id("&payload")),
+			jen.Err().Op(":=").Qual("encoding/json", "NewDecoder").Call(jen.Id("resp.Body")).Dot("Decode").Call(jen.Id("&payload")),
 			jen.Err().Op("!=").Nil(),
 		).Block(jen.Return(jen.Err())),
 		jen.If(
