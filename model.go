@@ -454,13 +454,17 @@ func generateModelType(f *jen.File, m contentfulModel) {
 		jen.Id("cache").Id("*iteratorCache"),
 	).Index().Id(m.Name).Block(
 		jen.Var().Id("items").Index().Id(m.Name),
-		jen.For(jen.List(jen.Id("_"), jen.Id("entry")).Op(":=").Range().Append(jen.Id("includes.Entries"), jen.Id("its..."))).Block(
+		jen.Id("entries").Op(":=").Append(jen.Id("includes.Entries"), jen.Id("its...")),
+		jen.For(jen.List(jen.Id("_"), jen.Id("entryID")).Op(":=").Range().Id("ids")).Block(
 			jen.Var().Id("item").Id(fmt.Sprintf("%sItem", m.DowncasedName())),
-			jen.Var().Id("included").Op("=").Lit(false),
-			jen.For(jen.List(jen.Id("_"), jen.Id("entryID")).Op(":=").Range().Id("ids")).Block(
-				jen.Id("included").Op("=").Id("included").Op("||").Id("entryID.Sys.ID").Op("==").Id("entry.Sys.ID"),
+			jen.Var().Id("entry").Op("*").Id("includeEntry"),
+			jen.For(jen.List(jen.Id("_"), jen.Id("e")).Op(":=").Range().Id("entries")).Block(
+				jen.If(jen.Id("e.Sys.ID").Op("==").Id("entryID.Sys.ID")).Block(
+					jen.Id("entry").Op("=").Op("&").Id("e"),
+					jen.Break(),
+				),
 			),
-			jen.If(jen.Id("included").Op("!=").Lit(true)).Block(
+			jen.If(jen.Id("entry").Op("==").Nil()).Block(
 				jen.Continue(),
 			),
 			jen.If(
