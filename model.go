@@ -152,9 +152,15 @@ func generateModelItemAttributes(m contentfulModel) func(*jen.Group) {
 
 func fieldName(f field) string {
 	name := strings.ToUpper(f.Name[0:1]) + f.Name[1:]
+
 	if strings.HasSuffix(name, "Id") {
 		name = name[0:len(name)-2] + "ID"
 	}
+
+	if strings.HasSuffix(name, "Ids") {
+		name = name[0:len(name)-3] + "IDs"
+	}
+
 	return name
 }
 
