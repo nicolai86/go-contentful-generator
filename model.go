@@ -114,7 +114,11 @@ func generateModelResolvers(model contentfulModel, items, includes, cache string
 	for _, field := range model.Fields {
 		fieldName := fieldName(field)
 		switch field.Type {
-		case "Symbol", "Text", "Integer", "Number", "Boolean", "Date":
+		case "Symbol", "Text", "Integer", "Number", "Boolean", "Date", "Array":
+			if field.Type == "Array" && field.Items.Type == "Link" {
+				continue
+			}
+
 			d[jen.Id(fieldName)] = jen.Id("item").Dot("Fields").Dot(fieldName)
 		}
 	}
