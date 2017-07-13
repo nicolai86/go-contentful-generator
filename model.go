@@ -98,6 +98,8 @@ func generateModelLinkResolver(model contentfulModel, items, includes, cache str
 							jen.Id(cache),
 						)
 					}
+				case "Symbol":
+					d[jen.Id(fieldName)] = jen.Id("item").Dot("Fields").Dot(fieldName)
 				}
 			}
 		}
@@ -116,6 +118,8 @@ func generateModelResolvers(model contentfulModel, items, includes, cache string
 		switch field.Type {
 		case "Symbol", "Text", "Integer", "Number", "Boolean", "Date":
 			d[jen.Id(fieldName)] = jen.Id("item").Dot("Fields").Dot(fieldName)
+		case "Link":
+			// ignored because these are handled via asset resolution
 		}
 	}
 	return d
