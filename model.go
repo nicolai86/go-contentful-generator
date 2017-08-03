@@ -116,7 +116,11 @@ func generateModelResolvers(model contentfulModel, items, includes, cache string
 	for _, field := range model.Fields {
 		fieldName := fieldName(field)
 		switch field.Type {
-		case "Symbol", "Text", "Integer", "Number", "Boolean", "Date":
+		case "Symbol", "Text", "Integer", "Number", "Boolean", "Date", "Array":
+			if field.Type == "Array" && field.Items.Type == "Link" {
+				continue
+			}
+
 			d[jen.Id(fieldName)] = jen.Id("item").Dot("Fields").Dot(fieldName)
 		case "Link":
 			// ignored because these are handled via asset resolution
@@ -156,9 +160,15 @@ func generateModelItemAttributes(m contentfulModel) func(*jen.Group) {
 
 func fieldName(f field) string {
 	name := strings.ToUpper(f.Name[0:1]) + f.Name[1:]
+
 	if strings.HasSuffix(name, "Id") {
 		name = name[0:len(name)-2] + "ID"
 	}
+
+	if strings.HasSuffix(name, "Ids") {
+		name = name[0:len(name)-3] + "IDs"
+	}
+
 	return name
 }
 
