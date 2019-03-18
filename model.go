@@ -283,9 +283,10 @@ func generateModelType(f *jen.File, m contentfulModel) {
 	).Id("fetch").Params().Id("error").Block(
 		jen.Id("c").Op(":=").Id("it.c"),
 		jen.Var().Id("url").Op("=").Qual("fmt", "Sprintf").Params(
-			jen.Lit("%s/spaces/%s/entries?access_token=%s&content_type=%s&include=%d&locale=%s&limit=%d&skip=%d"),
+			jen.Lit("%s/spaces/%s/environments/%s/entries?access_token=%s&content_type=%s&include=%d&locale=%s&limit=%d&skip=%d"),
 			jen.Id("c.host"),
 			jen.Id("c.spaceID"),
+			jen.Id("c.environment"),
 			jen.Id("c.authToken"),
 			jen.Lit(m.Sys.ID),
 			jen.Id("it.IncludeCount"),

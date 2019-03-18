@@ -68,7 +68,7 @@ const cmaEndpoint = "api.contentful.com"
 const cpaEndpoint = "preview.contentful.com"
 
 func init() {
-	var url = fmt.Sprintf("https://%s/spaces/%s/content_types?access_token=%s", cmaEndpoint, os.Getenv("CONTENTFUL_SPACE_ID"), os.Getenv("CONTENTFUL_AUTH_TOKEN"))
+	var url = fmt.Sprintf("https://%s/spaces/%s/environments/%s/content_types?access_token=%s", cmaEndpoint, os.Getenv("CONTENTFUL_SPACE_ID"), os.Getenv("CONTENTFUL_ENVIRONMENT"), os.Getenv("CONTENTFUL_AUTH_TOKEN"))
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Fatal(err)
