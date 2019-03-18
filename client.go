@@ -85,6 +85,7 @@ func generateContentClient(f *jen.File) {
 		jen.Id("spaceID").String(),
 		jen.Id("authToken").String(),
 		jen.Id("Locale").String(),
+		jen.Id("environment").String(),
 		jen.Id("client").Op("*").Qual("net/http", "Client"),
 		jen.Id("pool").Op("*").Qual("crypto/x509", "CertPool"),
 	)
@@ -102,15 +103,17 @@ func generateContentClient(f *jen.File) {
 	f.Func().Id("NewCDA").Params(
 		jen.Id("authToken").String(),
 		jen.Id("locale").String(),
+		jen.Id("environment").String(),
 	).Op("*").Id("ContentClient").Block(
 		jen.Id("pool").Op(":=").Qual("crypto/x509", "NewCertPool").Call(),
 		jen.Id("pool").Dot("AppendCertsFromPEM").Call(jen.Index().Byte().Parens(jen.Lit(certs))),
 		jen.Return(jen.Op("&").Id("ContentClient").Values(jen.Dict{
-			jen.Id("host"):      jen.Qual("fmt", "Sprintf").Params(jen.Lit("https://%s"), jen.Id("contentfulCDAURL")),
-			jen.Id("spaceID"):   jen.Lit(os.Getenv("CONTENTFUL_SPACE_ID")),
-			jen.Id("authToken"): jen.Id("authToken"),
-			jen.Id("Locale"):    jen.Id("locale"),
-			jen.Id("pool"):      jen.Id("pool"),
+			jen.Id("host"):        jen.Qual("fmt", "Sprintf").Params(jen.Lit("https://%s"), jen.Id("contentfulCDAURL")),
+			jen.Id("spaceID"):     jen.Lit(os.Getenv("CONTENTFUL_SPACE_ID")),
+			jen.Id("authToken"):   jen.Id("authToken"),
+			jen.Id("Locale"):      jen.Id("locale"),
+			jen.Id("environment"): jen.Id("environment"),
+			jen.Id("pool"):        jen.Id("pool"),
 			jen.Id("client"): jen.Op("&").Qual("net/http", "Client").Values(jen.Dict{
 				jen.Id("Transport"): jen.Op("&").Qual("net/http", "Transport").Values(jen.Dict{
 					jen.Id("TLSClientConfig"): jen.Op("&").Qual("crypto/tls", "Config").Values(jen.Dict{
@@ -125,15 +128,17 @@ func generateContentClient(f *jen.File) {
 	f.Func().Id("NewCPA").Params(
 		jen.Id("authToken").String(),
 		jen.Id("locale").String(),
+		jen.Id("environment").String(),
 	).Op("*").Id("ContentClient").Block(
 		jen.Id("pool").Op(":=").Qual("crypto/x509", "NewCertPool").Call(),
 		jen.Id("pool").Dot("AppendCertsFromPEM").Call(jen.Index().Byte().Parens(jen.Lit(certs))),
 		jen.Return(jen.Op("&").Id("ContentClient").Values(jen.Dict{
-			jen.Id("host"):      jen.Qual("fmt", "Sprintf").Params(jen.Lit("https://%s"), jen.Id("contentfulCPAURL")),
-			jen.Id("spaceID"):   jen.Lit(os.Getenv("CONTENTFUL_SPACE_ID")),
-			jen.Id("authToken"): jen.Id("authToken"),
-			jen.Id("Locale"):    jen.Id("locale"),
-			jen.Id("pool"):      jen.Id("pool"),
+			jen.Id("host"):        jen.Qual("fmt", "Sprintf").Params(jen.Lit("https://%s"), jen.Id("contentfulCPAURL")),
+			jen.Id("spaceID"):     jen.Lit(os.Getenv("CONTENTFUL_SPACE_ID")),
+			jen.Id("authToken"):   jen.Id("authToken"),
+			jen.Id("Locale"):      jen.Id("locale"),
+			jen.Id("environment"): jen.Id("environment"),
+			jen.Id("pool"):        jen.Id("pool"),
 			jen.Id("client"): jen.Op("&").Qual("net/http", "Client").Values(jen.Dict{
 				jen.Id("Transport"): jen.Op("&").Qual("net/http", "Transport").Values(jen.Dict{
 					jen.Id("TLSClientConfig"): jen.Op("&").Qual("crypto/tls", "Config").Values(jen.Dict{

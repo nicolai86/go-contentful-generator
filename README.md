@@ -9,6 +9,7 @@ generate a complete contentful SDK client from your existing schema
 - [x] generates typed contentful content management api SDK
 - [x] supports recursive type definitions
 - [x] supports assets
+- [x] supports multiple environments
 
 ## Installation
 
@@ -26,6 +27,7 @@ first, export the necessary credentials into your env:
 
 ```
 $ export CONTENTFUL_SPACE_ID=awesome-space
+$ export CONTENTFUL_ENVIRONMENT=staging
 $ export CONTENTFUL_AUTH_TOKEN=secret-token
 ```
 
